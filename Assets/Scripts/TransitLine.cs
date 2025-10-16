@@ -1,27 +1,72 @@
+using System.Collections.Generic;
 using UnityEngine;
 
 public class TransitLine : MonoBehaviour
 {
     private LineRenderer lr;
-    public Transform[] stations;
-    // Start is called once before the first execution of Update after the MonoBehaviour is created
-    void Start()
+    private List<Transform> stations;
+    private bool liveUpdating = false;
+    private Transform mousePos;
+
+    void Awake()
     {
         lr = GetComponent<LineRenderer>();
     }
 
-    public void lineSetup(Transform[] points)
-    {
-        lr.positionCount = points.Length;
-        stations = points;
-    }
-
-    // Update is called once per frame
     void Update()
     {
-        for (int i = 0; i < stations.Length; i++)
+        if (liveUpdating && stations != null)
+        {
+            int count = stations.Count;
+            if (mousePos != null)
+            {
+                count++;
+            }
+
+            lr.positionCount = count;
+
+            for (int i = 0; i < stations.Count; i++)
+            {
+                Vector3 pos = stations[i].position;
+                pos.z = 0f; 
+                lr.SetPosition(i, pos);
+            }
+
+            if (mousePos)
+            {
+                Vector3 mouse = mousePos.position;
+                mouse.z = 0f;
+                lr.SetPosition(stations.Count, mouse);
+            }
+
+            if (mousePos)
+            {
+                lr.SetPosition(stations.Count, mousePos.position);
+            }
+        }
+    }
+
+    public void LineSetup(List<Transform> points)
+    {
+        stations = new List<Transform>(points);
+        lr.positionCount = stations.Count;
+
+        for (int i = 0; i < stations.Count; i++)
         {
             lr.SetPosition(i, stations[i].position);
         }
+    }
+
+    public void EnablePreview(List<Transform> points, Transform mouse)
+    {
+        stations = points;
+        mousePos = mouse;
+        liveUpdating = true;
+    }
+
+    public void DisablePreview()
+    {
+        liveUpdating = false;
+        mousePos = null;
     }
 }
