@@ -7,6 +7,8 @@ public class TransitLine : MonoBehaviour
     private List<Transform> stations;
     private bool liveUpdating = false;
     private Transform mousePos;
+    [SerializeField] GameObject trainObject;
+    Color color = Color.white;
 
     void Awake()
     {
@@ -55,6 +57,8 @@ public class TransitLine : MonoBehaviour
         {
             lr.SetPosition(i, stations[i].position);
         }
+        GameObject newTrain = Instantiate(trainObject, transform);
+        newTrain.GetComponent<Train>().UpdateTrainLine(stations, color);
     }
 
     public void EnablePreview(List<Transform> points, Transform mouse)

@@ -1,5 +1,6 @@
 using System.Collections;
 using System.Collections.Generic;
+using System.Drawing;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
@@ -15,6 +16,7 @@ public class GameManager : MonoBehaviour
     private TransitLine previewTransit;
     private float spawnRadius = 1.88f;
     private int maxAttempts = 100;
+    private List<UnityEngine.Color> colors = new List<UnityEngine.Color> { UnityEngine.Color.red, UnityEngine.Color.blue };
 
     void Start()
     {
