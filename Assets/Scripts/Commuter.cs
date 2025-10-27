@@ -3,13 +3,8 @@ using static System.Collections.Specialized.BitVector32;
 
 public class Commuter : MonoBehaviour
 {
-    public enum CommuterType
-    {
-        Circle,
-        Square,
-        Triangle
-    }
-    public CommuterType type;
+    
+    public StationType type;
     // Start is called once before the first execution of Update after the MonoBehaviour is created
     void Start()
     {
@@ -22,19 +17,17 @@ public class Commuter : MonoBehaviour
         
     }
 
-    public void SetCommuter(int destination) {
+    public void SetCommuter(StationType destination) {
+        type = destination;
         switch (destination)
         {
-            case 0:
-                type = CommuterType.Circle;
+            case StationType.Circle:
                 transform.Find("Circle_0").GetComponent<SpriteRenderer>().enabled = true;
                 break;
-            case 1:
-                type = CommuterType.Square;
+            case StationType.Square:
                 transform.Find("Square_0").GetComponent<SpriteRenderer>().enabled = true;
                 break;
-            case 2:
-                type = CommuterType.Triangle;
+            case StationType.Triangle:
                 transform.Find("Triangle_0").GetComponent<SpriteRenderer>().enabled = true;
                 break;
         }

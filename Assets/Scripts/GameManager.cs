@@ -3,13 +3,16 @@ using System.Collections.Generic;
 using System.Drawing;
 using UnityEngine;
 using UnityEngine.SceneManagement;
+using static Station;
 
 public class GameManager : MonoBehaviour
 {
     [SerializeField] private GameObject lineObject;
+    [SerializeField] private GameObject commuterObject;
     [SerializeField] private GameObject stationObject;
 
     private List<Transform> stations = new List<Transform>();
+    private List<GameObject> transitStations = new List<GameObject>();
     private Transform mousePos;
     private bool isDrawing = false;
     private GameObject previewLine;
@@ -21,6 +24,7 @@ public class GameManager : MonoBehaviour
     void Start()
     {
         StartCoroutine(StationLoop());
+        StartCoroutine(CommuterLoop());
 
         mousePos = new GameObject("MousePosition").transform;
 
@@ -70,16 +74,16 @@ public class GameManager : MonoBehaviour
         {
             isDrawing = false;
 
-            if (stations.Count > 1)
-            {
-                GameObject newLine = Instantiate(lineObject);
-                newLine.GetComponent<TransitLine>().LineSetup(stations);
-            }
-
             if (previewTransit != null)
             {
                 previewTransit.DisablePreview();
                 Destroy(previewLine);
+            }
+
+            if (stations.Count > 1)
+            {
+                GameObject newLine = Instantiate(lineObject);
+                newLine.GetComponent<TransitLine>().LineSetup(new List<Transform>(stations));
             }
 
             stations.Clear();
@@ -93,6 +97,16 @@ public class GameManager : MonoBehaviour
             float delay = Random.Range(25f, 30f);
             yield return new WaitForSeconds(delay);
             SpawnStation();
+        }
+    }
+
+    IEnumerator CommuterLoop()
+    {
+        while (true)
+        {
+            float delay = Random.Range(3.5f, 5.5f);
+            yield return new WaitForSeconds(delay);
+            SpawnCommuter();
         }
     }
 
@@ -133,5 +147,18 @@ public class GameManager : MonoBehaviour
         GameObject newStation = Instantiate(stationObject, spawnPos, Quaternion.identity);
         int stationType = Random.Range(0, 3);
         newStation.GetComponent<Station>().SetStation(stationType);
+        transitStations.Add(newStation);
+    }
+
+    void SpawnCommuter()
+    {
+        int spawnStation = Random.Range(0, transitStations.Count);
+        GameObject targetStation = transitStations[spawnStation];
+        StationType[] types = (StationType[])System.Enum.GetValues(typeof(StationType));
+        StationType[] filtered = System.Array.FindAll(types, t => t != targetStation.GetComponent<Station>().GetStationType());
+        StationType stationType = filtered[Random.Range(0, filtered.Length)];
+        GameObject newCommuter = Instantiate(commuterObject);
+        newCommuter.GetComponent<Commuter>().SetCommuter(stationType);
+        targetStation.GetComponent<Station>().AddCommuter(newCommuter);
     }
 }

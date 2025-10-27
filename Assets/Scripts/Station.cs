@@ -1,14 +1,12 @@
 using UnityEngine;
+using System.Collections.Generic;
+using System;
 
 public class Station : MonoBehaviour
 {
-    private enum StationType
-    {
-        Circle,
-        Square,
-        Triangle
-    }
     private StationType station;
+    public List<GameObject> commuters;
+
     // Start is called once before the first execution of Update after the MonoBehaviour is created
     void Start()
     {
@@ -19,6 +17,17 @@ public class Station : MonoBehaviour
     void Update()
     {
         
+    }
+
+    public void AddCommuter(GameObject commuter)
+    {
+        commuters.Add(commuter);
+        commuter.transform.position = new Vector3 (Convert.ToSingle(transform.position.x+(.32*(commuters.Count-1))+.6), Convert.ToSingle(transform.position.y+.35), 0);
+    }
+
+    public StationType GetStationType()
+    {
+        return station;
     }
 
     public void SetStation(int type)

@@ -152,3 +152,4 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 3fe5313bcf85a824f995fd92759ae26b, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  trainObject: {fileID: 7603589361720858906, guid: 3a84f98cb804e8c4796ca1def3ef83f3, type: 3}

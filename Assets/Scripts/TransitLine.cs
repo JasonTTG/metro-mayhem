@@ -50,13 +50,22 @@ public class TransitLine : MonoBehaviour
 
     public void LineSetup(List<Transform> points)
     {
-        stations = new List<Transform>(points);
-        lr.positionCount = stations.Count;
+        stations = new List<Transform>();
 
+        foreach (var p in points)
+        {
+            if (p != null && p != mousePos)
+            { 
+            stations.Add(p);
+            }
+        }
+
+        lr.positionCount = stations.Count;
         for (int i = 0; i < stations.Count; i++)
         {
             lr.SetPosition(i, stations[i].position);
         }
+
         GameObject newTrain = Instantiate(trainObject, transform);
         newTrain.GetComponent<Train>().UpdateTrainLine(stations, color);
     }
