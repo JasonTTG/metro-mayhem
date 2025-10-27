@@ -77,16 +77,13 @@ public class GameManager : MonoBehaviour
             {
                 Transform lastStation = stations[stations.Count - 1];
                 float dist = Vector3.Distance(mouseV3, lastStation.position);
-                float minDrawDistance = 0.3f;
-
-                if (dist < minDrawDistance)
+                if (dist > 0.5f)
                 {
-                    Vector3 dir = (mouseV3 - lastStation.position).normalized;
-                    mousePos.position = lastStation.position + dir * minDrawDistance;
+                    mousePos.position = mouseV3;
                 }
                 else
                 {
-                    mousePos.position = mouseV3;
+                    mousePos.position = lastStation.position;
                 }
             }
 
