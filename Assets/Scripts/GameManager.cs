@@ -11,15 +11,19 @@ public class GameManager : MonoBehaviour
     [SerializeField] private GameObject commuterObject;
     [SerializeField] private GameObject stationObject;
 
-    private List<Transform> stations = new List<Transform>();
+
     private List<GameObject> transitStations = new List<GameObject>();
-    private Transform mousePos;
-    private bool isDrawing = false;
-    private GameObject previewLine;
-    private TransitLine previewTransit;
     private float spawnRadius = 1.88f;
     private int maxAttempts = 100;
-    private List<UnityEngine.Color> colors = new List<UnityEngine.Color> { UnityEngine.Color.red, UnityEngine.Color.blue };
+
+    private Transform mousePos;
+    private List<Transform> stations = new List<Transform>();
+    private GameObject previewLine;
+    private TransitLine previewTransit;
+    private List<UnityEngine.Color> colors = new List<UnityEngine.Color> { UnityEngine.Color.red, UnityEngine.Color.blue, UnityEngine.Color.yellow };
+    private List<GameObject> lines = new List<GameObject>();
+    private bool isDrawing = false;
+    private int maxLines = 3;
 
     void Start()
     {
@@ -35,9 +39,23 @@ public class GameManager : MonoBehaviour
 
     void Update()
     {
-        if (Input.GetMouseButtonDown(0))
+        Vector3 mouseV3 = Camera.main.ScreenToWorldPoint(Input.mousePosition);
+        mouseV3.z = 0f;
+
+        if (lines.Count >= maxLines)
         {
-            RaycastHit2D startHit = Physics2D.Raycast(Camera.main.ScreenToWorldPoint(Input.mousePosition), Vector2.zero);
+            if (previewLine != null)
+            {
+                Destroy(previewLine);
+                previewLine = null;
+            }
+            isDrawing = false;
+            return;
+        }
+
+        if (!isDrawing && Input.GetMouseButtonDown(0))
+        {
+            RaycastHit2D startHit = Physics2D.Raycast(mouseV3, Vector2.zero);
 
             if (startHit.collider && startHit.collider.CompareTag("Station"))
             {
@@ -47,15 +65,30 @@ public class GameManager : MonoBehaviour
 
                 previewLine = Instantiate(lineObject);
                 previewTransit = previewLine.GetComponent<TransitLine>();
+                int colorIndex = Mathf.Min(lines.Count, colors.Count - 1);
+                previewTransit.SetColor(colors[colorIndex]);
                 previewTransit.EnablePreview(stations, mousePos);
             }
         }
 
         if (isDrawing && Input.GetMouseButton(0))
         {
-            Vector3 mouseV3 = Camera.main.ScreenToWorldPoint(Input.mousePosition);
-            mouseV3.z = 0f;
-            mousePos.position = mouseV3;
+            if (stations.Count > 0)
+            {
+                Transform lastStation = stations[stations.Count - 1];
+                float dist = Vector3.Distance(mouseV3, lastStation.position);
+                float minDrawDistance = 0.3f;
+
+                if (dist < minDrawDistance)
+                {
+                    Vector3 dir = (mouseV3 - lastStation.position).normalized;
+                    mousePos.position = lastStation.position + dir * minDrawDistance;
+                }
+                else
+                {
+                    mousePos.position = mouseV3;
+                }
+            }
 
             RaycastHit2D mouseHit = Physics2D.Raycast(mouseV3, Vector2.zero);
             if (mouseHit.collider && mouseHit.collider.CompareTag("Station"))
@@ -78,17 +111,24 @@ public class GameManager : MonoBehaviour
             {
                 previewTransit.DisablePreview();
                 Destroy(previewLine);
+                previewLine = null;
             }
 
-            if (stations.Count > 1)
+            if (stations.Count > 1 && lines.Count < maxLines)
             {
+                int nextIndex = lines.Count;
                 GameObject newLine = Instantiate(lineObject);
-                newLine.GetComponent<TransitLine>().LineSetup(new List<Transform>(stations));
+                lines.Add(newLine);
+
+                TransitLine line = newLine.GetComponent<TransitLine>();
+                line.SetColor(colors[nextIndex]);
+                line.LineSetup(new List<Transform>(stations));
             }
 
             stations.Clear();
         }
     }
+
 
     IEnumerator StationLoop()
     {

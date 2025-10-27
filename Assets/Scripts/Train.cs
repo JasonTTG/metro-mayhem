@@ -19,13 +19,11 @@ public class Train : MonoBehaviour
     // Update is called once per frame
     void Update()
     {
-        /*
         if (!stopped)
         {
             float movement = speed * Time.deltaTime;
             transform.position = Vector3.MoveTowards(transform.position, target.position, movement);
         }
-        */
     }
 
     void OnCollisionEnter(Collision collision)
@@ -45,6 +43,7 @@ public class Train : MonoBehaviour
     {
         stations = line;
         sr.color = color;
-        target = stations[1];
+        stationIndex = 1;
+        target = stations[stationIndex];
     }
 }

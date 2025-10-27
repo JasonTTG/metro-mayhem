@@ -3,7 +3,7 @@ using UnityEngine;
 
 public class TransitLine : MonoBehaviour
 {
-    private LineRenderer lr;
+    public LineRenderer lr;
     private List<Transform> stations;
     private bool liveUpdating = false;
     private Transform mousePos;
@@ -81,5 +81,12 @@ public class TransitLine : MonoBehaviour
     {
         liveUpdating = false;
         mousePos = null;
+    }
+
+    public void SetColor(Color newColor)
+    {
+        color = newColor;
+        lr.startColor = newColor;
+        lr.endColor = newColor;
     }
 }

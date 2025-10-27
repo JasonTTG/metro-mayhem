@@ -89,7 +89,7 @@ LineRenderer:
       m_Curve:
       - serializedVersion: 3
         time: 0
-        value: 0.65408707
+        value: 0.4591179
         inSlope: 0
         outSlope: 0
         tangentMode: 0
@@ -129,8 +129,8 @@ LineRenderer:
       m_ColorSpace: 0
       m_NumColorKeys: 2
       m_NumAlphaKeys: 2
-    numCornerVertices: 0
-    numCapVertices: 0
+    numCornerVertices: 5
+    numCapVertices: 5
     alignment: 1
     textureMode: 0
     textureScale: {x: 1, y: 1}
@@ -152,4 +152,5 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 3fe5313bcf85a824f995fd92759ae26b, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  lr: {fileID: 0}
   trainObject: {fileID: 7603589361720858906, guid: 3a84f98cb804e8c4796ca1def3ef83f3, type: 3}

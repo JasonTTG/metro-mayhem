@@ -370,6 +370,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   lineObject: {fileID: 7662346200861463977, guid: 09821bf7b7c05594fb6c98dfb4fc8072, type: 3}
+  commuterObject: {fileID: 4514976761595126555, guid: c8b3869b19d968f459bc97b25c6b9440, type: 3}
   stationObject: {fileID: 4514976761595126555, guid: 919f9d2a700a78f4c91da56860b0764d, type: 3}
 --- !u!4 &1323358084
 Transform:
