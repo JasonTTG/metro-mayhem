@@ -32,6 +32,10 @@ public class Station : MonoBehaviour
 
     public void ClearCommuters()
     {
+        foreach (GameObject com in commuters)
+        {
+            Destroy(com);
+        }
         commuters.Clear();
     }
 

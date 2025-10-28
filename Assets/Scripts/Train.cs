@@ -5,6 +5,8 @@ using static System.Collections.Specialized.BitVector32;
 
 public class Train : MonoBehaviour
 {
+    [SerializeField] private GameObject commuterObject;
+
     private List<Transform> stations;
     private SpriteRenderer sr;
     private float speed = 3f;
@@ -62,7 +64,11 @@ public class Train : MonoBehaviour
 
         yield return new WaitForSeconds(stopDuration);
 
-        List<GameObject> stationPeople = station.GetCommuters();
+        List<StationType> stationPeople = new List<StationType>();
+        foreach (GameObject person in station.GetCommuters())
+        {
+            stationPeople.Add(person.GetComponent<Commuter>().type);
+        }
         station.ClearCommuters();
 
         int slots = 5 - commuters.Count;
@@ -70,27 +76,18 @@ public class Train : MonoBehaviour
 
         while (stationPeople.Count > 0 && added < slots)
         {
-            var commuterObj = stationPeople[0];
-            var commuter = commuterObj.GetComponent<Commuter>();
-
-            if (commuter != null)
-            {
-                commuters.Add(commuter.type);
-                stationPeople.RemoveAt(0);
-                Destroy(commuterObj);
-                added++;
-            }
-            else
-            {
-                stationPeople.RemoveAt(0);
-            }
+            commuters.Add(stationPeople[0]);
+            stationPeople.RemoveAt(0);
+            added++;
         }
 
         if (stationPeople.Count > 0)
         {
-            foreach (GameObject c in stationPeople)
+            foreach (StationType c in stationPeople)
             {
-                if (c != null) station.AddCommuter(c);
+                GameObject newCommuter = Instantiate(commuterObject);
+                newCommuter.GetComponent<Commuter>().SetCommuter(c);
+                station.AddCommuter(newCommuter);
             }
         }
 
@@ -117,11 +114,17 @@ public class Train : MonoBehaviour
             if (i < commuters.Count)
             {
                 StationType type = commuters[i];
-                string spriteName = type.ToString(); 
-                Transform sprite = seatChild.Find(spriteName);
-                if (sprite != null)
+                switch (type)
                 {
-                    sprite.GetComponent<SpriteRenderer>().enabled = true;
+                    case StationType.Circle:
+                        seatChild.transform.Find("Circle_0").GetComponent<SpriteRenderer>().enabled = true;
+                        break;
+                    case StationType.Square:
+                        seatChild.transform.Find("Square_0").GetComponent<SpriteRenderer>().enabled = true;
+                        break;
+                    case StationType.Triangle:
+                        seatChild.transform.Find("Triangle_0").GetComponent<SpriteRenderer>().enabled = true;
+                        break;
                 }
             }
         }

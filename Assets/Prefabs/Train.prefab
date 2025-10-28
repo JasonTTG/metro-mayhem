@@ -1400,6 +1400,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 142640f4250615f41932d1bddd00a669, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  commuterObject: {fileID: 4514976761595126555, guid: c8b3869b19d968f459bc97b25c6b9440, type: 3}
 --- !u!61 &5125328301518579702
 BoxCollider2D:
   m_ObjectHideFlags: 0
