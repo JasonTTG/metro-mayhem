@@ -55,9 +55,13 @@ public class TransitLine : MonoBehaviour
         foreach (var p in points)
         {
             if (p != null && p != mousePos)
-            { 
-            stations.Add(p);
+            {
+                stations.Add(p);
             }
+        }
+        if (stations.Count >= 2 && stations[0].position == stations[1].position)
+        {
+            stations.RemoveAt(1);
         }
 
         lr.positionCount = stations.Count;
@@ -65,8 +69,7 @@ public class TransitLine : MonoBehaviour
         {
             lr.SetPosition(i, stations[i].position);
         }
-
-        GameObject newTrain = Instantiate(trainObject, transform);
+        GameObject newTrain = Instantiate(trainObject, stations[0].position, Quaternion.identity);
         newTrain.GetComponent<Train>().UpdateTrainLine(stations, color);
     }
 

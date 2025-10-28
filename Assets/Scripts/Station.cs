@@ -25,6 +25,16 @@ public class Station : MonoBehaviour
         commuter.transform.position = new Vector3 (Convert.ToSingle(transform.position.x+(.32*(commuters.Count-1))+.6), Convert.ToSingle(transform.position.y+.35), 0);
     }
 
+    public List<GameObject> GetCommuters()
+    {
+        return commuters;
+    }
+
+    public void ClearCommuters()
+    {
+        commuters.Clear();
+    }
+
     public StationType GetStationType()
     {
         return station;

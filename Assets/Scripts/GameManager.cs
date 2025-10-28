@@ -111,7 +111,7 @@ public class GameManager : MonoBehaviour
                 previewLine = null;
             }
 
-            if (stations.Count > 1 && lines.Count < maxLines)
+            if (stations.Count > 2 && lines.Count < maxLines)
             {
                 int nextIndex = lines.Count;
                 GameObject newLine = Instantiate(lineObject);
