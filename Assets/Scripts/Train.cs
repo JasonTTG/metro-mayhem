@@ -57,6 +57,7 @@ public class Train : MonoBehaviour
                 if (commuters[i] == station.GetStationType())
                 {
                     commuters.RemoveAt(i);
+                    GameManager.instance.NewCommuter();
                 }
             }
             UpdateSeats();
@@ -71,13 +72,13 @@ public class Train : MonoBehaviour
         }
         station.ClearCommuters();
 
-        int slots = 5 - commuters.Count;
+        int slots = 4 - commuters.Count;
         int added = 0;
 
         while (stationPeople.Count > 0 && added < slots)
         {
             commuters.Add(stationPeople[0]);
-            stationPeople.RemoveAt(0);
+            stationPeople.RemoveAt(0); 
             added++;
         }
 

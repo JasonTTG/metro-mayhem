@@ -1,6 +1,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using System.Drawing;
+using TMPro;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using static Station;
@@ -10,8 +11,10 @@ public class GameManager : MonoBehaviour
     [SerializeField] private GameObject lineObject;
     [SerializeField] private GameObject commuterObject;
     [SerializeField] private GameObject stationObject;
+    [SerializeField] private TextMeshProUGUI stationText;
+    public static GameManager instance;
 
-
+    private int totalCommuters = 0;
     private List<GameObject> transitStations = new List<GameObject>();
     private float spawnRadius = 1.88f;
     private int maxAttempts = 100;
@@ -25,6 +28,11 @@ public class GameManager : MonoBehaviour
     private bool isDrawing = false;
     private int maxLines = 3;
 
+    private void Awake()
+    {
+        instance = this;
+    }
+
     void Start()
     {
         StartCoroutine(StationLoop());
@@ -32,9 +40,9 @@ public class GameManager : MonoBehaviour
 
         mousePos = new GameObject("MousePosition").transform;
 
-        SpawnStation();
-        SpawnStation();
-        SpawnStation();
+        SpawnStation(StationType.Circle);
+        SpawnStation(StationType.Square);
+        SpawnStation(StationType.Triangle);
     }
 
     void Update()
@@ -187,6 +195,57 @@ public class GameManager : MonoBehaviour
         transitStations.Add(newStation);
     }
 
+    void SpawnStation(StationType type)
+    {
+        Vector3 spawnPos = Vector3.zero;
+        bool validPosition = false;
+        int stationType = 0;
+
+        for (int attempt = 0; attempt < maxAttempts; attempt++)
+        {
+            Vector3 candidatePos = new Vector3(Random.Range(-7.9f, 7.9f), Random.Range(-4f, 4f));
+            Collider2D[] nearby = Physics2D.OverlapCircleAll(candidatePos, spawnRadius);
+
+            bool tooClose = false;
+            foreach (Collider2D col in nearby)
+            {
+                if (col.CompareTag("Station"))
+                {
+                    tooClose = true;
+                    break;
+                }
+            }
+
+            if (!tooClose)
+            {
+                spawnPos = candidatePos;
+                validPosition = true;
+                break;
+            }
+        }
+
+        if (!validPosition)
+        {
+            SceneManager.LoadScene(SceneManager.GetActiveScene().name);
+            return;
+        }
+        if (type == StationType.Square)
+        {
+            stationType = 1;
+        }
+        if (type == StationType.Circle)
+        {
+            stationType = 0;
+        }
+        if (type == StationType.Triangle)
+        {
+            stationType = 2;
+        }
+        GameObject newStation = Instantiate(stationObject, spawnPos, Quaternion.identity);
+        newStation.GetComponent<Station>().SetStation(stationType);
+        transitStations.Add(newStation);
+    }
+
     void SpawnCommuter()
     {
         int spawnStation = Random.Range(0, transitStations.Count);
@@ -197,5 +256,11 @@ public class GameManager : MonoBehaviour
         GameObject newCommuter = Instantiate(commuterObject);
         newCommuter.GetComponent<Commuter>().SetCommuter(stationType);
         targetStation.GetComponent<Station>().AddCommuter(newCommuter);
+    }
+
+    public void NewCommuter()
+    {
+        totalCommuters++;
+        stationText.SetText("Total Commuters: " + totalCommuters);
     }
 }
