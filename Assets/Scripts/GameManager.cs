@@ -9,15 +9,22 @@ using static Station;
 public class GameManager : MonoBehaviour
 {
     [SerializeField] private GameObject lineObject;
+    [SerializeField] private TextMeshProUGUI getmoneyObject;
+    [SerializeField] private GameObject riverObject;
     [SerializeField] private GameObject commuterObject;
     [SerializeField] private GameObject stationObject;
     [SerializeField] private TextMeshProUGUI stationText;
+    [SerializeField] private TextMeshProUGUI cashText;
     public static GameManager instance;
 
     private int totalCommuters = 0;
     private List<GameObject> transitStations = new List<GameObject>();
     private float spawnRadius = 1.88f;
     private int maxAttempts = 100;
+    private double cash = 0;
+    private int riverCurvePoints = 7;
+    private LineRenderer riverLR;
+    private Vector3[] riverPoints;
 
     private Transform mousePos;
     private List<Transform> stations = new List<Transform>();
@@ -37,6 +44,36 @@ public class GameManager : MonoBehaviour
     {
         StartCoroutine(StationLoop());
         StartCoroutine(CommuterLoop());
+        GameObject riverInstance = Instantiate(riverObject);
+        riverLR = riverInstance.GetComponent<LineRenderer>();
+
+        Camera cam = Camera.main;
+        float z = 0f;
+
+        Vector3 startPos = cam.ViewportToWorldPoint(new Vector3(0f, Random.Range(0.2f, 0.8f), z));
+        startPos.z = 0f;
+        Vector3 endPos = cam.ViewportToWorldPoint(new Vector3(1f, Random.Range(0.2f, 0.8f), z));
+        endPos.z = 0f;
+
+        int totalPoints = riverCurvePoints + 2;
+        riverPoints = new Vector3[totalPoints];
+
+        riverPoints[0] = startPos;
+        riverPoints[totalPoints - 1] = endPos;
+
+        for (int i = 1; i <= riverCurvePoints; i++)
+        {
+            float t = (float)i / (riverCurvePoints + 1);
+            float x = Mathf.Lerp(startPos.x, endPos.x, t);
+            float minY = cam.ViewportToWorldPoint(new Vector3(0, 0, z)).y + 1f;
+            float maxY = cam.ViewportToWorldPoint(new Vector3(0, 1, z)).y - 1f;
+            float y = Random.Range(minY, maxY);
+
+            riverPoints[i] = new Vector3(x, y, 0f);
+        }
+
+        riverLR.positionCount = riverPoints.Length;
+        riverLR.SetPositions(riverPoints);
 
         mousePos = new GameObject("MousePosition").transform;
 
@@ -159,12 +196,12 @@ public class GameManager : MonoBehaviour
     {
         Vector3 spawnPos = Vector3.zero;
         bool validPosition = false;
+        float riverSafetyRadius = 1f;
 
         for (int attempt = 0; attempt < maxAttempts; attempt++)
         {
             Vector3 candidatePos = new Vector3(Random.Range(-7.9f, 7.9f), Random.Range(-4f, 4f));
             Collider2D[] nearby = Physics2D.OverlapCircleAll(candidatePos, spawnRadius);
-
             bool tooClose = false;
             foreach (Collider2D col in nearby)
             {
@@ -173,6 +210,11 @@ public class GameManager : MonoBehaviour
                     tooClose = true;
                     break;
                 }
+            }
+
+            if (!tooClose && IsPositionOnRiver(candidatePos, riverSafetyRadius))
+            {
+                tooClose = true;
             }
 
             if (!tooClose)
@@ -195,17 +237,36 @@ public class GameManager : MonoBehaviour
         transitStations.Add(newStation);
     }
 
+    private float DistancePointToLineSegment(Vector3 p, Vector3 a, Vector3 b)
+    {
+        Vector3 ab = b - a;
+        Vector3 ap = p - a;
+        float t = Mathf.Clamp01(Vector3.Dot(ap, ab) / ab.sqrMagnitude);
+        Vector3 closest = a + t * ab;
+        return Vector3.Distance(p, closest);
+    }
+
+    private bool IsPositionOnRiver(Vector3 candidatePos, float minDistance)
+    {
+        for (int i = 0; i < riverPoints.Length - 1; i++)
+        {
+            if (DistancePointToLineSegment(candidatePos, riverPoints[i], riverPoints[i + 1]) < minDistance)
+                return true; 
+        }
+        return false;
+    }
+
     void SpawnStation(StationType type)
     {
         Vector3 spawnPos = Vector3.zero;
         bool validPosition = false;
         int stationType = 0;
+        float riverSafetyRadius = 1f;
 
         for (int attempt = 0; attempt < maxAttempts; attempt++)
         {
             Vector3 candidatePos = new Vector3(Random.Range(-7.9f, 7.9f), Random.Range(-4f, 4f));
             Collider2D[] nearby = Physics2D.OverlapCircleAll(candidatePos, spawnRadius);
-
             bool tooClose = false;
             foreach (Collider2D col in nearby)
             {
@@ -214,6 +275,11 @@ public class GameManager : MonoBehaviour
                     tooClose = true;
                     break;
                 }
+            }
+
+            if (!tooClose && IsPositionOnRiver(candidatePos, riverSafetyRadius))
+            {
+                tooClose = true;
             }
 
             if (!tooClose)
@@ -261,6 +327,37 @@ public class GameManager : MonoBehaviour
     public void NewCommuter()
     {
         totalCommuters++;
+        cash += 1.75;
         stationText.SetText("Total Commuters: " + totalCommuters);
+        cashText.SetText("$" + cash);
+        TextMeshProUGUI floatingText = Instantiate(getmoneyObject, cashText.transform.parent);
+        StartCoroutine(MoneyAnimation(floatingText));
+    }
+
+    private IEnumerator MoneyAnimation(TextMeshProUGUI tmp)
+    {
+        yield return new WaitForSeconds(Random.Range(0f, 0.2f));
+        RectTransform rect = tmp.rectTransform;
+        Vector3 startPos = rect.anchoredPosition;
+        Vector3 endPos = startPos + Vector3.up * 35f;
+        float duration = 1f;
+        float elapsed = 0f;
+        UnityEngine.Color startColor = tmp.color;
+
+        while (elapsed < duration)
+        {
+            elapsed += Time.deltaTime;
+            float t = elapsed / duration;
+
+            rect.anchoredPosition = Vector3.Lerp(startPos, endPos, t);
+
+            UnityEngine.Color newColor = startColor;
+            newColor.a = Mathf.Lerp(1f, 0f, t);
+            tmp.color = newColor;
+
+            yield return null;
+        }
+
+        Destroy(tmp.gameObject);
     }
 }
