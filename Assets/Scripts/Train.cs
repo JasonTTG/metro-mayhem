@@ -12,6 +12,7 @@ public class Train : MonoBehaviour
     private float speed = 3f;
     private float stopDuration = 2f;
     private List<StationType> commuters = new List<StationType>();
+    private ParticleSystem ps;
 
     private int stationIndex = 0;
     private Transform target;
@@ -47,6 +48,7 @@ public class Train : MonoBehaviour
     private IEnumerator StopAtStation()
     {
         stopped = true;
+        ps.Stop();
 
         var station = target.GetComponent<Station>();
 
@@ -136,7 +138,7 @@ public class Train : MonoBehaviour
     private void MoveToNextStation()
     {
         int nextIndex = movingForward ? stationIndex + 1 : stationIndex - 1;
-
+        ps.Play();
         if (nextIndex >= stations.Count || nextIndex < 0)
         {
             if (isLoop)
@@ -159,6 +161,7 @@ public class Train : MonoBehaviour
     public void UpdateTrainLine(List<Transform> line, Color color)
     {
         sr = GetComponentInChildren<SpriteRenderer>();
+        ps = GetComponentInChildren<ParticleSystem>();
         stations = line;
         sr.color = color;
         stationIndex = 0;

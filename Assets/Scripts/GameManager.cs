@@ -331,18 +331,29 @@ public class GameManager : MonoBehaviour
         stationText.SetText("Total Commuters: " + totalCommuters);
         cashText.SetText("$" + cash);
         TextMeshProUGUI floatingText = Instantiate(getmoneyObject, cashText.transform.parent);
-        StartCoroutine(MoneyAnimation(floatingText));
+        StartCoroutine(MoneyAnimation(floatingText, 7.25));
     }
 
-    private IEnumerator MoneyAnimation(TextMeshProUGUI tmp)
+    private IEnumerator MoneyAnimation(TextMeshProUGUI tmp, double val)
     {
         yield return new WaitForSeconds(Random.Range(0f, 0.2f));
         RectTransform rect = tmp.rectTransform;
-        Vector3 startPos = rect.anchoredPosition;
-        Vector3 endPos = startPos + Vector3.up * 35f;
+        Vector3 startPos;
+        Vector3 endPos;
+        if (val > 0)
+        {
+            startPos = rect.anchoredPosition;
+            endPos = startPos + Vector3.up * 35f;
+            tmp.color = UnityEngine.Color.green;
+        } else
+        {
+            startPos = rect.anchoredPosition + Vector2.up * 35f ;
+            endPos = startPos + Vector3.down * 35f;
+            tmp.color = UnityEngine.Color.red;
+        }
+        UnityEngine.Color startColor = tmp.color;
         float duration = 1f;
         float elapsed = 0f;
-        UnityEngine.Color startColor = tmp.color;
 
         while (elapsed < duration)
         {
