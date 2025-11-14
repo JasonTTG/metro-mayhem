@@ -9,6 +9,8 @@ public class TransitLine : MonoBehaviour
     private Transform mousePos;
     [SerializeField] GameObject trainObject;
     Color color = Color.white;
+    private LineRenderer solidLR;
+    private LineRenderer dottedLR;
 
     void Awake()
     {
@@ -71,6 +73,50 @@ public class TransitLine : MonoBehaviour
         }
         GameObject newTrain = Instantiate(trainObject, stations[0].position, Quaternion.identity);
         newTrain.GetComponent<Train>().UpdateTrainLine(stations, color);
+    }
+
+    public void ApplyRiverOverlap()
+    {
+        Vector3[] pts = new Vector3[lr.positionCount];
+        lr.GetPositions(pts);
+
+        List<Vector3> solid = new();
+        List<Vector3> dotted = new();
+
+        bool wasDotted = false;
+
+        for (int i = 0; i < pts.Length; i++)
+        {
+            Vector3 p = pts[i];
+            bool isDotted = GameManager.IsPositionOnRiver(p, 1f);
+
+            if (isDotted)
+            {
+                dotted.Add(p);
+
+                if (!wasDotted && solid.Count > 0)
+                {
+                    dotted.Insert(0, solid[solid.Count - 1]);
+                }
+            }
+            else
+            {
+                solid.Add(p);
+
+                if (wasDotted && dotted.Count > 0)
+                {
+                    solid.Add(dotted[dotted.Count - 1]);
+                }
+            }
+
+            wasDotted = isDotted;
+        }
+
+        solidLR.positionCount = solid.Count;
+        solidLR.SetPositions(solid.ToArray());
+
+        dottedLR.positionCount = dotted.Count;
+        dottedLR.SetPositions(dotted.ToArray());
     }
 
     public void EnablePreview(List<Transform> points, Transform mouse)

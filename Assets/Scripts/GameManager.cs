@@ -1,9 +1,11 @@
 using System.Collections;
 using System.Collections.Generic;
 using System.Drawing;
+using System.Linq;
 using TMPro;
 using UnityEngine;
 using UnityEngine.SceneManagement;
+using UnityEngine.UIElements;
 using static Station;
 
 public class GameManager : MonoBehaviour
@@ -15,6 +17,9 @@ public class GameManager : MonoBehaviour
     [SerializeField] private GameObject stationObject;
     [SerializeField] private TextMeshProUGUI stationText;
     [SerializeField] private TextMeshProUGUI cashText;
+    [SerializeField] private GameObject pauseButton;
+    [SerializeField] private Sprite pause;
+    [SerializeField] private Sprite play;
     public static GameManager instance;
 
     private int totalCommuters = 0;
@@ -34,6 +39,7 @@ public class GameManager : MonoBehaviour
     private List<GameObject> lines = new List<GameObject>();
     private bool isDrawing = false;
     private int maxLines = 3;
+    public static bool paused = false;
 
     private void Awake()
     {
@@ -96,6 +102,25 @@ public class GameManager : MonoBehaviour
             }
             isDrawing = false;
             return;
+        }
+
+        if (Input.GetMouseButtonDown(0))
+        {
+            RaycastHit2D startHit = Physics2D.Raycast(mouseV3, Vector2.zero);
+
+            if (startHit.collider)
+            {
+                string colliderTag = startHit.collider.tag;
+                switch (colliderTag)
+                {
+                    case "Pause":
+                        paused = !paused;
+                        pauseButton.GetComponent<SpriteRenderer>().sprite = paused ? play : pause;
+                        break;
+                    case "Shop":
+                        break;
+                }
+            }
         }
 
         if (!isDrawing && Input.GetMouseButtonDown(0))
@@ -165,6 +190,7 @@ public class GameManager : MonoBehaviour
                 TransitLine line = newLine.GetComponent<TransitLine>();
                 line.SetColor(colors[nextIndex]);
                 line.LineSetup(new List<Transform>(stations));
+                line.ApplyRiverOverlap();
             }
 
             stations.Clear();
@@ -178,7 +204,10 @@ public class GameManager : MonoBehaviour
         {
             float delay = Random.Range(25f, 30f);
             yield return new WaitForSeconds(delay);
-            SpawnStation();
+            if (!paused)
+            {
+                SpawnStation();
+            }
         }
     }
 
@@ -188,7 +217,10 @@ public class GameManager : MonoBehaviour
         {
             float delay = Random.Range(3.5f, 5.5f);
             yield return new WaitForSeconds(delay);
-            SpawnCommuter();
+            if (!paused)
+            {
+                SpawnCommuter();
+            }
         }
     }
 
@@ -237,7 +269,7 @@ public class GameManager : MonoBehaviour
         transitStations.Add(newStation);
     }
 
-    private float DistancePointToLineSegment(Vector3 p, Vector3 a, Vector3 b)
+    public static float DistancePointToLineSegment(Vector3 p, Vector3 a, Vector3 b)
     {
         Vector3 ab = b - a;
         Vector3 ap = p - a;
@@ -246,7 +278,7 @@ public class GameManager : MonoBehaviour
         return Vector3.Distance(p, closest);
     }
 
-    private bool IsPositionOnRiver(Vector3 candidatePos, float minDistance)
+    public static bool IsPositionOnRiver(Vector3 candidatePos, float minDistance)
     {
         for (int i = 0; i < riverPoints.Length - 1; i++)
         {

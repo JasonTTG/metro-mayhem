@@ -30,7 +30,7 @@ public class Train : MonoBehaviour
         {
             return;
         }
-        if (!stopped)
+        if (!stopped && !GameManager.paused)
         {
             float movement = speed * Time.deltaTime;
             transform.position = Vector3.MoveTowards(transform.position, target.position, movement);
