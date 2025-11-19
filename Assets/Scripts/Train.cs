@@ -8,6 +8,7 @@ public class Train : MonoBehaviour
     [SerializeField] private GameObject commuterObject;
 
     private List<Transform> stations;
+    private HashSet<StationType> stationTypes;
     private SpriteRenderer sr;
     private float speed = 3f;
     private float stopDuration = 2f;
@@ -76,12 +77,19 @@ public class Train : MonoBehaviour
 
         int slots = 4 - commuters.Count;
         int added = 0;
+        int idx = 0;
 
-        while (stationPeople.Count > 0 && added < slots)
+        while (stationPeople.Count > 0 && added < slots && stationPeople.Count > idx)
         {
-            commuters.Add(stationPeople[0]);
-            stationPeople.RemoveAt(0); 
-            added++;
+            if (stationTypes.Contains(stationPeople[idx]))
+            {
+                commuters.Add(stationPeople[idx]);
+                stationPeople.RemoveAt(idx);
+                added++;
+            } else
+            {
+                idx++;
+            }
         }
 
         if (stationPeople.Count > 0)
@@ -158,12 +166,13 @@ public class Train : MonoBehaviour
         stopped = false;
     }
 
-    public void UpdateTrainLine(List<Transform> line, Color color)
+    public void UpdateTrainLine(List<Transform> line, Color color, HashSet<StationType> st)
     {
         sr = GetComponentInChildren<SpriteRenderer>();
         ps = GetComponentInChildren<ParticleSystem>();
         stations = line;
         sr.color = color;
+        stationTypes = st;
         stationIndex = 0;
         movingForward = true;
         target = stations[1];

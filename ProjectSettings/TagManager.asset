@@ -6,6 +6,7 @@ TagManager:
   tags:
   - Station
   - Pause
+  - Shop
   layers:
   - Default
   - TransparentFX

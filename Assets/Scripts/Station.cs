@@ -6,6 +6,7 @@ public class Station : MonoBehaviour
 {
     private StationType station;
     public List<GameObject> commuters;
+    private int capacity = 6;
 
     // Start is called once before the first execution of Update after the MonoBehaviour is created
     void Start()
@@ -19,6 +20,16 @@ public class Station : MonoBehaviour
         
     }
 
+    public int GetCapacity()
+    {
+        return capacity;
+    }
+
+    public void IncreaseCapacity()
+    {
+        capacity = 8;
+    }
+
     public void AddCommuter(GameObject commuter)
     {
         commuters.Add(commuter);
@@ -28,6 +39,11 @@ public class Station : MonoBehaviour
     public List<GameObject> GetCommuters()
     {
         return commuters;
+    }
+
+    public int CommuterSize()
+    {
+        return commuters.Count;
     }
 
     public void ClearCommuters()

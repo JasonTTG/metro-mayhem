@@ -7,6 +7,7 @@ using UnityEngine;
 using UnityEngine.SceneManagement;
 using UnityEngine.UIElements;
 using static Station;
+using static Unity.Burst.Intrinsics.X86.Avx;
 
 public class GameManager : MonoBehaviour
 {
@@ -20,6 +21,7 @@ public class GameManager : MonoBehaviour
     [SerializeField] private GameObject pauseButton;
     [SerializeField] private Sprite pause;
     [SerializeField] private Sprite play;
+    [SerializeField] private GameObject shop;
     public static GameManager instance;
 
     private int totalCommuters = 0;
@@ -29,17 +31,20 @@ public class GameManager : MonoBehaviour
     private double cash = 0;
     private int riverCurvePoints = 7;
     private LineRenderer riverLR;
-    private Vector3[] riverPoints;
+    private static Vector3[] riverPoints;
 
     private Transform mousePos;
     private List<Transform> stations = new List<Transform>();
+    private HashSet<StationType> stationTypes = new HashSet<StationType>();
     private GameObject previewLine;
     private TransitLine previewTransit;
     private List<UnityEngine.Color> colors = new List<UnityEngine.Color> { UnityEngine.Color.red, UnityEngine.Color.blue, UnityEngine.Color.yellow };
+    private bool addedColor = false;
     private List<GameObject> lines = new List<GameObject>();
     private bool isDrawing = false;
     private int maxLines = 3;
     public static bool paused = false;
+    private bool shopOpen = false;
 
     private void Awake()
     {
@@ -93,6 +98,8 @@ public class GameManager : MonoBehaviour
         Vector3 mouseV3 = Camera.main.ScreenToWorldPoint(Input.mousePosition);
         mouseV3.z = 0f;
 
+        if (mouseV3.y < 0.2 && mouseV3.x < 5.75 && shopOpen)
+
         if (lines.Count >= maxLines)
         {
             if (previewLine != null)
@@ -118,6 +125,13 @@ public class GameManager : MonoBehaviour
                         pauseButton.GetComponent<SpriteRenderer>().sprite = paused ? play : pause;
                         break;
                     case "Shop":
+                        StartCoroutine(OpenCloseShop());
+                        break;
+                    case "LineButton":
+                        break;
+                    case "TrainButton":
+                        break;
+                    case "StationButton":
                         break;
                 }
             }
@@ -132,7 +146,7 @@ public class GameManager : MonoBehaviour
                 isDrawing = true;
                 stations.Clear();
                 stations.Add(startHit.collider.transform);
-
+                stationTypes.Add(startHit.collider.GetComponent<Station>().GetStationType());
                 previewLine = Instantiate(lineObject);
                 previewTransit = previewLine.GetComponent<TransitLine>();
                 int colorIndex = Mathf.Min(lines.Count, colors.Count - 1);
@@ -166,6 +180,7 @@ public class GameManager : MonoBehaviour
                     (stations[stations.Count - 1] != hitStation && stations[stations.Count - 2] != hitStation))
                 {
                     stations.Add(hitStation);
+                    stationTypes.Add(mouseHit.collider.GetComponent<Station>().GetStationType());
                 }
             }
         }
@@ -189,11 +204,12 @@ public class GameManager : MonoBehaviour
 
                 TransitLine line = newLine.GetComponent<TransitLine>();
                 line.SetColor(colors[nextIndex]);
-                line.LineSetup(new List<Transform>(stations));
+                line.LineSetup(new List<Transform>(stations), stationTypes);
                 line.ApplyRiverOverlap();
             }
 
             stations.Clear();
+            stationTypes.Clear();
         }
     }
 
@@ -259,6 +275,7 @@ public class GameManager : MonoBehaviour
 
         if (!validPosition)
         {
+            // Replace with win screen
             SceneManager.LoadScene(SceneManager.GetActiveScene().name);
             return;
         }
@@ -354,6 +371,12 @@ public class GameManager : MonoBehaviour
         GameObject newCommuter = Instantiate(commuterObject);
         newCommuter.GetComponent<Commuter>().SetCommuter(stationType);
         targetStation.GetComponent<Station>().AddCommuter(newCommuter);
+        if (targetStation.GetComponent<Station>().GetCapacity() < targetStation.GetComponent<Station>().CommuterSize())
+        {
+            // Replace with lose screen
+            SceneManager.LoadScene(SceneManager.GetActiveScene().name);
+        }
+
     }
 
     public void NewCommuter()
@@ -402,5 +425,40 @@ public class GameManager : MonoBehaviour
         }
 
         Destroy(tmp.gameObject);
+    }
+    private IEnumerator OpenCloseShop()
+    {
+        Vector3 startPos;
+        Vector3 endPos;
+        startPos = shop.transform.position;
+        float duration = .3f;
+        float elapsed = 0f;
+        if (!shopOpen)
+        {
+            endPos = startPos + Vector3.up * 4f;
+        } else
+        {
+            endPos = startPos + Vector3.down * 4f;
+        }
+        while (elapsed < duration)
+        {
+            elapsed += Time.deltaTime;
+            float t = elapsed / duration;
+            shop.transform.position = Vector3.Lerp(startPos, endPos, t);
+            yield return null;
+        }
+        shopOpen = !shopOpen;
+    }
+
+    void BuyColor()
+    {
+        if (!addedColor)
+        {
+            colors.Add(UnityEngine.Color.magenta);
+            addedColor = true;
+        } else
+        {
+            colors.Add(UnityEngine.Color.green);
+        }
     }
 }

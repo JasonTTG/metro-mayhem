@@ -4,6 +4,7 @@ using UnityEngine;
 public class TransitLine : MonoBehaviour
 {
     public LineRenderer lr;
+    private HashSet<StationType> stationTypes;
     private List<Transform> stations;
     private bool liveUpdating = false;
     private Transform mousePos;
@@ -50,9 +51,10 @@ public class TransitLine : MonoBehaviour
         }
     }
 
-    public void LineSetup(List<Transform> points)
+    public void LineSetup(List<Transform> points, HashSet<StationType> types)
     {
         stations = new List<Transform>();
+        stationTypes = types;
 
         foreach (var p in points)
         {
@@ -72,7 +74,7 @@ public class TransitLine : MonoBehaviour
             lr.SetPosition(i, stations[i].position);
         }
         GameObject newTrain = Instantiate(trainObject, stations[0].position, Quaternion.identity);
-        newTrain.GetComponent<Train>().UpdateTrainLine(stations, color);
+        newTrain.GetComponent<Train>().UpdateTrainLine(stations, color, stationTypes);
     }
 
     public void ApplyRiverOverlap()
