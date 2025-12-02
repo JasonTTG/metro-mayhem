@@ -18,8 +18,10 @@ public class GameManager : MonoBehaviour
     [SerializeField] private GameObject stationObject;
     [SerializeField] private TextMeshProUGUI stationText;
     [SerializeField] private TextMeshProUGUI cashText;
+    [SerializeField] private TextMeshProUGUI pauseText;
     [SerializeField] private GameObject pauseButton;
     [SerializeField] private Sprite pause;
+    [SerializeField] private GameObject pauseOverlay;
     [SerializeField] private Sprite play;
     [SerializeField] private GameObject shop;
     public static GameManager instance;
@@ -32,6 +34,8 @@ public class GameManager : MonoBehaviour
     private int riverCurvePoints = 7;
     private LineRenderer riverLR;
     private static Vector3[] riverPoints;
+    private int tunnels = 3;
+    private int tunnelsUsedInCurrentLine = 0;
 
     private Transform mousePos;
     private List<Transform> stations = new List<Transform>();
@@ -119,6 +123,12 @@ public class GameManager : MonoBehaviour
                     case "Pause":
                         paused = !paused;
                         pauseButton.GetComponent<SpriteRenderer>().sprite = paused ? play : pause;
+                        pauseOverlay.GetComponent<SpriteRenderer>().enabled = paused;
+                        if (paused)
+                        {
+                            pauseText.GetComponent<TextMeshProUGUI>().text = "Paused";
+                        }
+                        pauseText.GetComponent<TextMeshProUGUI>().enabled = paused;
                         return;
                     case "Shop":
                         StartCoroutine(OpenCloseShop());
@@ -179,6 +189,7 @@ public class GameManager : MonoBehaviour
                 isDrawing = true;
                 stations.Clear();
                 stationTypes.Clear();
+                tunnelsUsedInCurrentLine = 0;
                 stations.Add(startHit.collider.transform);
                 stationTypes.Add(startHit.collider.GetComponent<Station>().GetStationType());
                 previewLine = Instantiate(lineObject);
@@ -213,8 +224,25 @@ public class GameManager : MonoBehaviour
                 if (stations.Count < 2 ||
                     (stations[stations.Count - 1] != hitStation && stations[stations.Count - 2] != hitStation))
                 {
-                    stations.Add(hitStation);
-                    stationTypes.Add(mouseHit.collider.GetComponent<Station>().GetStationType());
+                    if (stations[stations.Count-1] != hitStation)
+                    {
+                        if (stations.Count > 0)
+                        {
+                            Vector3 lastPos = stations[stations.Count - 1].position;
+                            Vector3 newPos = hitStation.position;
+                            if (DoesSegmentCrossRiver(lastPos, newPos))
+                            {
+                                if (tunnelsUsedInCurrentLine >= tunnels)
+                                {
+                                    return;
+                                }
+                                tunnelsUsedInCurrentLine++;
+                            }
+                        }
+
+                        stations.Add(hitStation);
+                        stationTypes.Add(mouseHit.collider.GetComponent<Station>().GetStationType());
+                    }
                 }
             }
         }
@@ -232,6 +260,14 @@ public class GameManager : MonoBehaviour
 
             if (stations.Count > 2 && lines.Count < maxLines)
             {
+                if (tunnelsUsedInCurrentLine > tunnels)
+                {
+                    stations.Clear();
+                    stationTypes.Clear();
+                    tunnelsUsedInCurrentLine = 0;
+                    return;
+                }
+
                 int nextIndex = lines.Count;
                 GameObject newLine = Instantiate(lineObject);
                 lines.Add(newLine);
@@ -239,10 +275,12 @@ public class GameManager : MonoBehaviour
                 TransitLine line = newLine.GetComponent<TransitLine>();
                 line.SetColor(colors[nextIndex]);
                 line.LineSetup(new List<Transform>(stations), new HashSet<StationType>(stationTypes));
+                tunnels -= tunnelsUsedInCurrentLine;
             }
 
             stations.Clear();
             stationTypes.Clear();
+            tunnelsUsedInCurrentLine = 0;
         }
     }
 
@@ -264,6 +302,7 @@ public class GameManager : MonoBehaviour
                 stations.Clear();
                 stationTypes.Clear();
                 editingEndStations.Clear();
+                tunnelsUsedInCurrentLine = 0;
 
                 editingTransitLine.gameObject.SetActive(false);
 
@@ -319,6 +358,21 @@ public class GameManager : MonoBehaviour
             if (stations.Count < 2 ||
                 (stations[stations.Count - 1] != hitStation && stations[stations.Count - 2] != hitStation))
             {
+                if (stations.Count > 0)
+                {
+                    Vector3 lastPos = stations[stations.Count - 1].position;
+                    Vector3 newPos = hitStation.position;
+
+                    if (DoesSegmentCrossRiver(lastPos, newPos))
+                    {
+                        if (tunnelsUsedInCurrentLine >= tunnels)
+                        {
+                            return;
+                        }
+                        tunnelsUsedInCurrentLine++;
+                    }
+                }
+
                 stations.Add(hitStation);
                 stationTypes.Add(mouseHit.collider.GetComponent<Station>().GetStationType());
             }
@@ -348,6 +402,18 @@ public class GameManager : MonoBehaviour
 
         if (stations.Count > originalStationCount)
         {
+            if (tunnelsUsedInCurrentLine > tunnels)
+            {
+                isEditingLine = false;
+                editingTransitLine = null;
+                editingSegmentIndex = -1;
+                stations.Clear();
+                stationTypes.Clear();
+                editingEndStations.Clear();
+                tunnelsUsedInCurrentLine = 0;
+                return;
+            }
+
             List<Transform> newStations = new List<Transform>();
             for (int i = originalStationCount; i < stations.Count; i++)
             {
@@ -361,6 +427,7 @@ public class GameManager : MonoBehaviour
             }
 
             editingTransitLine.InsertStationsAt(editingSegmentIndex + 1, newStations, newTypes);
+            tunnels -= tunnelsUsedInCurrentLine;
         }
 
         isEditingLine = false;
@@ -369,6 +436,7 @@ public class GameManager : MonoBehaviour
         stations.Clear();
         stationTypes.Clear();
         editingEndStations.Clear();
+        tunnelsUsedInCurrentLine = 0;
     }
 
     private void HandleLineSegmentDeletion(Vector3 mousePos)
@@ -476,7 +544,10 @@ public class GameManager : MonoBehaviour
         if (!validPosition)
         {
             // Replace with win screen
-            SceneManager.LoadScene(SceneManager.GetActiveScene().name);
+            paused = true;
+            pauseOverlay.GetComponent<SpriteRenderer>().enabled = paused;
+            pauseText.GetComponent<TextMeshProUGUI>().text = "You Win";
+            pauseText.GetComponent<TextMeshProUGUI>().enabled = true;
             return;
         }
 
@@ -574,7 +645,10 @@ public class GameManager : MonoBehaviour
         if (targetStation.GetComponent<Station>().GetCapacity() < targetStation.GetComponent<Station>().CommuterSize())
         {
             // Replace with lose screen
-            SceneManager.LoadScene(SceneManager.GetActiveScene().name);
+            paused = true;
+            pauseOverlay.GetComponent<SpriteRenderer>().enabled = paused;
+            pauseText.GetComponent<TextMeshProUGUI>().text = "Game Over";
+            pauseText.GetComponent<TextMeshProUGUI>().enabled = true;
         }
 
     }
@@ -636,7 +710,8 @@ public class GameManager : MonoBehaviour
         if (!shopOpen)
         {
             endPos = startPos + Vector3.up * 4f;
-        } else
+        }
+        else
         {
             endPos = startPos + Vector3.down * 4f;
         }
@@ -660,5 +735,41 @@ public class GameManager : MonoBehaviour
         {
             colors.Add(UnityEngine.Color.green);
         }
+    }
+
+    private bool DoesSegmentCrossRiver(Vector3 start, Vector3 end)
+    {
+        for (int i = 0; i < riverPoints.Length - 1; i++)
+        {
+            if (DoLineSegmentsIntersect(start, end, riverPoints[i], riverPoints[i + 1]))
+            {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /*
+     ChatGPT used to generate math for method
+     */
+    private bool DoLineSegmentsIntersect(Vector3 p1, Vector3 p2, Vector3 p3, Vector3 p4)
+    {
+
+        float d = (p2.x - p1.x) * (p4.y - p3.y) - (p2.y - p1.y) * (p4.x - p3.x);
+
+        if (Mathf.Abs(d) < 0.0001f)
+        {
+            return false;
+        }
+
+        float t = ((p3.x - p1.x) * (p4.y - p3.y) - (p3.y - p1.y) * (p4.x - p3.x)) / d;
+        float u = ((p3.x - p1.x) * (p2.y - p1.y) - (p3.y - p1.y) * (p2.x - p1.x)) / d;
+
+        if (t >= 0 && t <= 1 && u >= 0 && u <= 1)
+        {
+            return true;
+        }
+
+        return false;
     }
 }
