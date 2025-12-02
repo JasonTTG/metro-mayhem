@@ -46,6 +46,11 @@ public class GameManager : MonoBehaviour
     public static bool paused = false;
     private bool shopOpen = false;
 
+    private bool isEditingLine = false;
+    private TransitLine editingTransitLine;
+    private int editingSegmentIndex = -1;
+    private List<Transform> editingEndStations = new List<Transform>();
+
     private void Awake()
     {
         instance = this;
@@ -99,16 +104,7 @@ public class GameManager : MonoBehaviour
         mouseV3.z = 0f;
 
         if (mouseV3.y < 0.2 && mouseV3.x < 5.75 && shopOpen)
-
-        if (lines.Count >= maxLines)
         {
-            if (previewLine != null)
-            {
-                Destroy(previewLine);
-                previewLine = null;
-            }
-            isDrawing = false;
-            return;
         }
 
         if (Input.GetMouseButtonDown(0))
@@ -123,18 +119,55 @@ public class GameManager : MonoBehaviour
                     case "Pause":
                         paused = !paused;
                         pauseButton.GetComponent<SpriteRenderer>().sprite = paused ? play : pause;
-                        break;
+                        return;
                     case "Shop":
                         StartCoroutine(OpenCloseShop());
-                        break;
+                        return;
                     case "LineButton":
-                        break;
+                        return;
                     case "TrainButton":
-                        break;
+                        return;
                     case "StationButton":
-                        break;
+                        return;
                 }
             }
+        }
+
+        if (Input.GetMouseButtonDown(1))
+        {
+            HandleLineSegmentDeletion(mouseV3);
+            return;
+        }
+
+        if (!isDrawing && Input.GetMouseButtonDown(0))
+        {
+            if (TryStartLineEditing(mouseV3))
+            {
+                return;
+            }
+        }
+
+        if (isEditingLine && Input.GetMouseButton(0))
+        {
+            HandleLineEditing(mouseV3);
+            return;
+        }
+
+        if (isEditingLine && Input.GetMouseButtonUp(0))
+        {
+            FinishLineEditing();
+            return;
+        }
+
+        if (lines.Count >= maxLines)
+        {
+            if (previewLine != null)
+            {
+                Destroy(previewLine);
+                previewLine = null;
+            }
+            isDrawing = false;
+            return;
         }
 
         if (!isDrawing && Input.GetMouseButtonDown(0))
@@ -145,6 +178,7 @@ public class GameManager : MonoBehaviour
             {
                 isDrawing = true;
                 stations.Clear();
+                stationTypes.Clear();
                 stations.Add(startHit.collider.transform);
                 stationTypes.Add(startHit.collider.GetComponent<Station>().GetStationType());
                 previewLine = Instantiate(lineObject);
@@ -204,8 +238,7 @@ public class GameManager : MonoBehaviour
 
                 TransitLine line = newLine.GetComponent<TransitLine>();
                 line.SetColor(colors[nextIndex]);
-                line.LineSetup(new List<Transform>(stations), stationTypes);
-                line.ApplyRiverOverlap();
+                line.LineSetup(new List<Transform>(stations), new HashSet<StationType>(stationTypes));
             }
 
             stations.Clear();
@@ -213,6 +246,173 @@ public class GameManager : MonoBehaviour
         }
     }
 
+    private bool TryStartLineEditing(Vector3 mousePos)
+    {
+        float minDistance = 0.3f;
+
+        foreach (GameObject lineObj in lines)
+        {
+            TransitLine transitLine = lineObj.GetComponent<TransitLine>();
+            float distance;
+            int segmentIndex = transitLine.GetSegmentIndexAtPosition(mousePos, out distance);
+
+            if (segmentIndex >= 0 && distance < minDistance)
+            {
+                isEditingLine = true;
+                editingTransitLine = transitLine;
+                editingSegmentIndex = segmentIndex;
+                stations.Clear();
+                stationTypes.Clear();
+                editingEndStations.Clear();
+
+                editingTransitLine.gameObject.SetActive(false);
+
+                List<Transform> originalStations = transitLine.GetStations();
+
+                previewLine = Instantiate(lineObject);
+                previewTransit = previewLine.GetComponent<TransitLine>();
+                previewTransit.SetColor(transitLine.GetColor());
+
+                for (int i = 0; i <= segmentIndex; i++)
+                {
+                    stations.Add(originalStations[i]);
+                    stationTypes.Add(originalStations[i].GetComponent<Station>().GetStationType());
+                }
+
+                for (int i = segmentIndex + 1; i < originalStations.Count; i++)
+                {
+                    editingEndStations.Add(originalStations[i]);
+                }
+
+                this.mousePos.position = mousePos;
+
+                previewTransit.EnableSplitPreview(stations, editingEndStations, this.mousePos);
+
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private void HandleLineEditing(Vector3 mouseV3)
+    {
+        if (stations.Count > 0)
+        {
+            Transform lastStation = stations[stations.Count - 1];
+            float dist = Vector3.Distance(mouseV3, lastStation.position);
+            if (dist > 0.5f)
+            {
+                mousePos.position = mouseV3;
+            }
+            else
+            {
+                mousePos.position = lastStation.position;
+            }
+        }
+
+        RaycastHit2D mouseHit = Physics2D.Raycast(mouseV3, Vector2.zero);
+        if (mouseHit.collider && mouseHit.collider.CompareTag("Station"))
+        {
+            Transform hitStation = mouseHit.collider.transform;
+
+            if (stations.Count < 2 ||
+                (stations[stations.Count - 1] != hitStation && stations[stations.Count - 2] != hitStation))
+            {
+                stations.Add(hitStation);
+                stationTypes.Add(mouseHit.collider.GetComponent<Station>().GetStationType());
+            }
+        }
+
+        if (previewTransit != null)
+        {
+            previewTransit.UpdateSplitPreview(stations, editingEndStations, mousePos);
+        }
+    }
+
+    private void FinishLineEditing()
+    {
+        if (previewTransit != null)
+        {
+            previewTransit.DisablePreview();
+            Destroy(previewLine);
+            previewLine = null;
+        }
+
+        if (editingTransitLine != null)
+        {
+            editingTransitLine.gameObject.SetActive(true);
+        }
+
+        int originalStationCount = editingSegmentIndex + 1;
+
+        if (stations.Count > originalStationCount)
+        {
+            List<Transform> newStations = new List<Transform>();
+            for (int i = originalStationCount; i < stations.Count; i++)
+            {
+                newStations.Add(stations[i]);
+            }
+
+            HashSet<StationType> newTypes = new HashSet<StationType>();
+            foreach (var station in newStations)
+            {
+                newTypes.Add(station.GetComponent<Station>().GetStationType());
+            }
+
+            editingTransitLine.InsertStationsAt(editingSegmentIndex + 1, newStations, newTypes);
+        }
+
+        isEditingLine = false;
+        editingTransitLine = null;
+        editingSegmentIndex = -1;
+        stations.Clear();
+        stationTypes.Clear();
+        editingEndStations.Clear();
+    }
+
+    private void HandleLineSegmentDeletion(Vector3 mousePos)
+    {
+        float minDistance = 0.3f;
+
+        foreach (GameObject lineObj in lines)
+        {
+            TransitLine transitLine = lineObj.GetComponent<TransitLine>();
+            float distance;
+            int segmentIndex = transitLine.GetSegmentIndexAtPosition(mousePos, out distance);
+
+            if (segmentIndex >= 0 && distance < minDistance)
+            {
+                List<Transform> lineStations = transitLine.GetStations();
+
+                bool isStartSegment = segmentIndex == 0;
+                bool isEndSegment = segmentIndex == lineStations.Count - 2;
+
+                if (isStartSegment)
+                {
+                    transitLine.RemoveStationRange(0, 1);
+
+                    if (transitLine.GetStations().Count < 2)
+                    {
+                        lines.Remove(lineObj);
+                        Destroy(lineObj);
+                    }
+                    return;
+                }
+                else if (isEndSegment)
+                {
+                    transitLine.RemoveStationRange(lineStations.Count - 1, 1);
+
+                    if (transitLine.GetStations().Count < 2)
+                    {
+                        lines.Remove(lineObj);
+                        Destroy(lineObj);
+                    }
+                    return;
+                }
+            }
+        }
+    }
 
     IEnumerator StationLoop()
     {
@@ -300,7 +500,7 @@ public class GameManager : MonoBehaviour
         for (int i = 0; i < riverPoints.Length - 1; i++)
         {
             if (DistancePointToLineSegment(candidatePos, riverPoints[i], riverPoints[i + 1]) < minDistance)
-                return true; 
+                return true;
         }
         return false;
     }
@@ -402,7 +602,7 @@ public class GameManager : MonoBehaviour
             tmp.color = UnityEngine.Color.green;
         } else
         {
-            startPos = rect.anchoredPosition + Vector2.up * 35f ;
+            startPos = rect.anchoredPosition + Vector2.up * 35f;
             endPos = startPos + Vector3.down * 35f;
             tmp.color = UnityEngine.Color.red;
         }

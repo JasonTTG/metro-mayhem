@@ -21,6 +21,12 @@ public class Train : MonoBehaviour
     private bool isLoop = false;
     private bool stopped = false;
 
+    private bool isOnNewRoute = true;
+    private List<Transform> oldStations;
+    private int oldStationIndex = 0;
+    private bool oldMovingForward = true;
+    private bool usingOldRoute = false;
+
     void Start()
     {
     }
@@ -103,6 +109,7 @@ public class Train : MonoBehaviour
         }
 
         UpdateSeats();
+        CheckIfOnNewRoute();
         MoveToNextStation();
     }
 
@@ -141,42 +148,188 @@ public class Train : MonoBehaviour
         }
     }
 
-
+    public void UpdateColor(Color color)
+    {
+        sr.color = color;
+    }
 
     private void MoveToNextStation()
     {
-        int nextIndex = movingForward ? stationIndex + 1 : stationIndex - 1;
         ps.Play();
-        if (nextIndex >= stations.Count || nextIndex < 0)
-        {
-            if (isLoop)
-            {
-                stationIndex = 0;
-                nextIndex = 1;
-            }
-            else
-            {
-                movingForward = !movingForward;
-                nextIndex = movingForward ? stationIndex + 1 : stationIndex - 1;
-            }
-        }
 
-        stationIndex = nextIndex;
-        target = stations[stationIndex];
+        if (usingOldRoute && oldStations != null)
+        {
+            int nextIndex = oldMovingForward ? oldStationIndex + 1 : oldStationIndex - 1;
+
+            if (nextIndex >= oldStations.Count || nextIndex < 0)
+            {
+                TransitionToNewRoute();
+                return;
+            }
+
+            oldStationIndex = nextIndex;
+            target = oldStations[oldStationIndex];
+
+            CheckForRouteTransition();
+        }
+        else
+        {
+            int nextIndex = movingForward ? stationIndex + 1 : stationIndex - 1;
+
+            if (nextIndex >= stations.Count || nextIndex < 0)
+            {
+                if (isLoop)
+                {
+                    stationIndex = 0;
+                    nextIndex = 1;
+                }
+                else
+                {
+                    movingForward = !movingForward;
+                    nextIndex = movingForward ? stationIndex + 1 : stationIndex - 1;
+                }
+            }
+
+            stationIndex = nextIndex;
+            target = stations[stationIndex];
+        }
         stopped = false;
     }
 
-    public void UpdateTrainLine(List<Transform> line, Color color, HashSet<StationType> st)
+    private void TransitionToNewRoute()
+    {
+        usingOldRoute = false;
+        isOnNewRoute = true;
+        oldStations = null;
+
+        Transform currentTarget = target;
+        int closestIndex = 0;
+        float closestDistance = float.MaxValue;
+
+        for (int i = 0; i < stations.Count; i++)
+        {
+            float dist = Vector3.Distance(transform.position, stations[i].position);
+            if (dist < closestDistance)
+            {
+                closestDistance = dist;
+                closestIndex = i;
+            }
+        }
+
+        stationIndex = closestIndex;
+
+        int nextIndex = movingForward ? stationIndex + 1 : stationIndex - 1;
+        if (nextIndex >= 0 && nextIndex < stations.Count)
+        {
+            stationIndex = nextIndex;
+            target = stations[stationIndex];
+        }
+        else
+        {
+            target = stations[stationIndex];
+        }
+    }
+
+    private void CheckForRouteTransition()
+    {
+        for (int i = 0; i < stations.Count; i++)
+        {
+            if (stations[i] == target)
+            {
+                usingOldRoute = false;
+                isOnNewRoute = true;
+                oldStations = null;
+                stationIndex = i;
+                return;
+            }
+        }
+    }
+
+    public void UpdateTrainLine(List<Transform> line, Color color, HashSet<StationType> st, float offset)
     {
         sr = GetComponentInChildren<SpriteRenderer>();
         ps = GetComponentInChildren<ParticleSystem>();
+
+        if (stations != null && stations.Count > 0)
+        {
+            oldStations = new List<Transform>(stations);
+            oldStationIndex = stationIndex;
+            oldMovingForward = movingForward;
+            isOnNewRoute = false;
+
+            bool targetStillExists = false;
+            int newTargetIndex = -1;
+
+            for (int i = 0; i < line.Count; i++)
+            {
+                if (line[i] == target)
+                {
+                    targetStillExists = true;
+                    newTargetIndex = i;
+                    break;
+                }
+            }
+
+            if (targetStillExists)
+            {
+                usingOldRoute = false;
+                stationIndex = newTargetIndex;
+            }
+            else
+            {
+                usingOldRoute = true;
+            }
+        }
+        else
+        {
+            isOnNewRoute = true;
+            usingOldRoute = false;
+        }
+
         stations = line;
         sr.color = color;
         stationTypes = st;
-        stationIndex = 0;
-        movingForward = true;
-        target = stations[1];
-        stopped = false;
         isLoop = stations.Count > 1 && stations[0] == stations[stations.Count - 1];
+
+        if (oldStations == null)
+        {
+            stationIndex = 0;
+            movingForward = true;
+            target = stations[1];
+            transform.position = Vector3.MoveTowards(transform.position, target.position, offset);
+            Vector3 direction = target.position - transform.position;
+            float angle = Mathf.Atan2(direction.y, direction.x) * Mathf.Rad2Deg;
+            transform.rotation = Quaternion.Euler(0f, 0f, angle);
+        }
+    }
+
+    private void CheckIfOnNewRoute()
+    {
+        if (isOnNewRoute)
+        {
+            return;
+        }
+
+        if (usingOldRoute)
+        {
+            return;
+        }
+
+        if (oldStations != null && !usingOldRoute)
+        {
+            isOnNewRoute = true;
+            oldStations = null;
+        }
+    }
+
+    public bool IsOnNewRoute()
+    {
+        return isOnNewRoute;
+    }
+
+    public void MarkOnNewRoute()
+    {
+        isOnNewRoute = true;
+        oldStations = null;
     }
 }
