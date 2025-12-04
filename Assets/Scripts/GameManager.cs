@@ -149,14 +149,6 @@ public class GameManager : MonoBehaviour
             return;
         }
 
-        if (!isDrawing && Input.GetMouseButtonDown(0))
-        {
-            if (TryStartLineEditing(mouseV3))
-            {
-                return;
-            }
-        }
-
         if (isEditingLine && Input.GetMouseButton(0))
         {
             HandleLineEditing(mouseV3);
@@ -197,6 +189,15 @@ public class GameManager : MonoBehaviour
                 int colorIndex = Mathf.Min(lines.Count, colors.Count - 1);
                 previewTransit.SetColor(colors[colorIndex]);
                 previewTransit.EnablePreview(stations, mousePos);
+                return;
+            }
+        }
+
+        if (!isDrawing && Input.GetMouseButtonDown(0))
+        {
+            if (TryStartLineEditing(mouseV3))
+            {
+                return;
             }
         }
 
@@ -258,7 +259,7 @@ public class GameManager : MonoBehaviour
                 previewLine = null;
             }
 
-            if (stations.Count > 2 && lines.Count < maxLines)
+            if (stations.Count >= 2 && lines.Count < maxLines)
             {
                 if (tunnelsUsedInCurrentLine > tunnels)
                 {
