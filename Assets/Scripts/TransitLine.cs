@@ -17,6 +17,7 @@ public class TransitLine : MonoBehaviour
     private GameObject ghostLineObject;
     private LineRenderer ghostLR;
     private List<Transform> oldStations = new List<Transform>();
+    private int tunnels;
 
     void Awake()
     {
@@ -63,10 +64,11 @@ public class TransitLine : MonoBehaviour
         }
     }
 
-    public void LineSetup(List<Transform> points, HashSet<StationType> types)
+    public void LineSetup(List<Transform> points, HashSet<StationType> types, int tunnel)
     {
         stations = new List<Transform>();
         stationTypes = types;
+        tunnels = tunnel;
 
         foreach (var p in points)
         {
@@ -319,10 +321,21 @@ public class TransitLine : MonoBehaviour
     void OnDestroy()
     {
         RemoveAllTrains();
+        GameManager.RefundTunnels(tunnels);
         if (ghostLineObject != null)
         {
             Destroy(ghostLineObject);
         }
+    }
+
+    public void SetTunnels(int amt)
+    {
+        tunnels = amt;
+    }
+
+    public void RemoveTunnel()
+    {
+        tunnels -= 1;
     }
 
     private void SaveOldRoute()

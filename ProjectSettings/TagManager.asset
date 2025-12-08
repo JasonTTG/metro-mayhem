@@ -7,6 +7,12 @@ TagManager:
   - Station
   - Pause
   - Shop
+  - LineButton
+  - TrainButton
+  - StationButton
+  - TunnelButton
+  - Restart
+  - Start
   layers:
   - Default
   - TransparentFX

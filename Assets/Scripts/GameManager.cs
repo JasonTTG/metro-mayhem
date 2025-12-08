@@ -24,6 +24,8 @@ public class GameManager : MonoBehaviour
     [SerializeField] private GameObject pauseOverlay;
     [SerializeField] private Sprite play;
     [SerializeField] private GameObject shop;
+    [SerializeField] private GameObject bar;
+    [SerializeField] private GameObject restartButton;
     public static GameManager instance;
 
     private int totalCommuters = 0;
@@ -34,7 +36,6 @@ public class GameManager : MonoBehaviour
     private int riverCurvePoints = 7;
     private LineRenderer riverLR;
     private static Vector3[] riverPoints;
-    private int tunnels = 3;
     private int tunnelsUsedInCurrentLine = 0;
 
     private Transform mousePos;
@@ -49,6 +50,10 @@ public class GameManager : MonoBehaviour
     private int maxLines = 3;
     public static bool paused = false;
     private bool shopOpen = false;
+    private BottomBar bottomBar;
+    private int trains = 0;
+    private int upgrades = 0;
+    private static int tunnels = 3;
 
     private bool isEditingLine = false;
     private TransitLine editingTransitLine;
@@ -62,6 +67,7 @@ public class GameManager : MonoBehaviour
 
     void Start()
     {
+        bottomBar = bar.GetComponent<BottomBar>();
         StartCoroutine(StationLoop());
         StartCoroutine(CommuterLoop());
         GameObject riverInstance = Instantiate(riverObject);
@@ -85,7 +91,7 @@ public class GameManager : MonoBehaviour
         {
             float t = (float)i / (riverCurvePoints + 1);
             float x = Mathf.Lerp(startPos.x, endPos.x, t);
-            float minY = cam.ViewportToWorldPoint(new Vector3(0, 0, z)).y + 1f;
+            float minY = cam.ViewportToWorldPoint(new Vector3(0, 0, z)).y + 2f;
             float maxY = cam.ViewportToWorldPoint(new Vector3(0, 1, z)).y - 1f;
             float y = Random.Range(minY, maxY);
 
@@ -100,6 +106,7 @@ public class GameManager : MonoBehaviour
         SpawnStation(StationType.Circle);
         SpawnStation(StationType.Square);
         SpawnStation(StationType.Triangle);
+        bottomBar.UpdateBar(trains, upgrades, tunnels, colors, maxLines);
     }
 
     void Update()
@@ -134,10 +141,43 @@ public class GameManager : MonoBehaviour
                         StartCoroutine(OpenCloseShop());
                         return;
                     case "LineButton":
+                        if (maxLines < 4 && cash > 149)
+                        {
+                            BuyColor();
+                            cash -= 150;
+                            MoneyAnimation(cashText, -150);
+                            bottomBar.UpdateBar(trains, upgrades, tunnels, colors, maxLines);
+                        }
                         return;
                     case "TrainButton":
+                        if (cash > 109)
+                        {
+                            trains++;
+                            cash -= 110;
+                            MoneyAnimation(cashText, -110);
+                            bottomBar.UpdateBar(trains, upgrades, tunnels, colors, maxLines);
+                        }
                         return;
                     case "StationButton":
+                        if (cash > 89)
+                        {
+                            upgrades++;
+                            cash -= 90;
+                            MoneyAnimation(cashText, -90);
+                            bottomBar.UpdateBar(trains, upgrades, tunnels, colors, maxLines);
+                        }
+                        return;
+                    case "TunnelButton":
+                        if (cash > 69)
+                        {
+                            tunnels++;
+                            cash -= 70;
+                            MoneyAnimation(cashText, -70);
+                            bottomBar.UpdateBar(trains, upgrades, tunnels, colors, maxLines);
+                        }
+                        return;
+                    case "Restart":
+                        SceneManager.LoadScene(1);
                         return;
                 }
             }
@@ -275,8 +315,9 @@ public class GameManager : MonoBehaviour
                 TransitLine line = newLine.GetComponent<TransitLine>();
                 line.SetColor(colors[0]);
                 colors.RemoveAt(0);
-                line.LineSetup(new List<Transform>(stations), new HashSet<StationType>(stationTypes));
+                line.LineSetup(new List<Transform>(stations), new HashSet<StationType>(stationTypes), tunnelsUsedInCurrentLine);
                 tunnels -= tunnelsUsedInCurrentLine;
+                bottomBar.UpdateBar(trains, upgrades, tunnels, colors, maxLines);
             }
 
             stations.Clear();
@@ -428,7 +469,9 @@ public class GameManager : MonoBehaviour
             }
 
             editingTransitLine.InsertStationsAt(editingSegmentIndex + 1, newStations, newTypes);
+            editingTransitLine.SetTunnels(tunnelsUsedInCurrentLine);
             tunnels -= tunnelsUsedInCurrentLine;
+            bottomBar.UpdateBar(trains, upgrades, tunnels, colors, maxLines);
         }
 
         isEditingLine = false;
@@ -459,6 +502,12 @@ public class GameManager : MonoBehaviour
 
                 if (isStartSegment)
                 {
+                    if (DoesSegmentCrossRiver(lineStations[segmentIndex].position, lineStations[segmentIndex + 1].position))
+                    {
+                        RefundTunnels(1);
+                        transitLine.RemoveTunnel();
+                        bottomBar.UpdateBar(trains, upgrades, tunnels, colors, maxLines);
+                    }
                     transitLine.RemoveStationRange(0, 1);
 
                     if (transitLine.GetStations().Count < 2)
@@ -466,17 +515,25 @@ public class GameManager : MonoBehaviour
                         colors.Insert(0, lineObj.GetComponent<TransitLine>().GetColor());
                         lines.Remove(lineObj);
                         Destroy(lineObj);
+                        bottomBar.UpdateBar(trains, upgrades, tunnels, colors, maxLines);
                     }
                     return;
                 }
                 else if (isEndSegment)
                 {
+                    if (DoesSegmentCrossRiver(lineStations[segmentIndex].position, lineStations[segmentIndex + 1].position))
+                    {
+                        RefundTunnels(1);
+                        transitLine.RemoveTunnel();
+                        bottomBar.UpdateBar(trains, upgrades, tunnels, colors, maxLines);
+                    }
                     transitLine.RemoveStationRange(lineStations.Count - 1, 1);
 
                     if (transitLine.GetStations().Count < 2)
                     {
                         lines.Remove(lineObj);
                         Destroy(lineObj);
+                        bottomBar.UpdateBar(trains, upgrades, tunnels, colors, maxLines);
                     }
                     return;
                 }
@@ -518,7 +575,7 @@ public class GameManager : MonoBehaviour
 
         for (int attempt = 0; attempt < maxAttempts; attempt++)
         {
-            Vector3 candidatePos = new Vector3(Random.Range(-7.9f, 7.9f), Random.Range(-4f, 4f));
+            Vector3 candidatePos = new Vector3(Random.Range(-7.9f, 7.9f), Random.Range(-2f, 4f));
             Collider2D[] nearby = Physics2D.OverlapCircleAll(candidatePos, spawnRadius);
             bool tooClose = false;
             foreach (Collider2D col in nearby)
@@ -545,7 +602,7 @@ public class GameManager : MonoBehaviour
 
         if (!validPosition)
         {
-            // Replace with win screen
+            restartButton.SetActive(true);
             paused = true;
             pauseOverlay.GetComponent<SpriteRenderer>().enabled = paused;
             pauseText.GetComponent<TextMeshProUGUI>().text = "You Win";
@@ -587,7 +644,7 @@ public class GameManager : MonoBehaviour
 
         for (int attempt = 0; attempt < maxAttempts; attempt++)
         {
-            Vector3 candidatePos = new Vector3(Random.Range(-7.9f, 7.9f), Random.Range(-4f, 4f));
+            Vector3 candidatePos = new Vector3(Random.Range(-7.9f, 7.9f), Random.Range(-2f, 4f));
             Collider2D[] nearby = Physics2D.OverlapCircleAll(candidatePos, spawnRadius);
             bool tooClose = false;
             foreach (Collider2D col in nearby)
@@ -646,8 +703,8 @@ public class GameManager : MonoBehaviour
         targetStation.GetComponent<Station>().AddCommuter(newCommuter);
         if (targetStation.GetComponent<Station>().GetCapacity() < targetStation.GetComponent<Station>().CommuterSize())
         {
-            // Replace with lose screen
             paused = true;
+            restartButton.SetActive(true);
             pauseOverlay.GetComponent<SpriteRenderer>().enabled = paused;
             pauseText.GetComponent<TextMeshProUGUI>().text = "Game Over";
             pauseText.GetComponent<TextMeshProUGUI>().enabled = true;
@@ -739,6 +796,11 @@ public class GameManager : MonoBehaviour
             colors.Add(UnityEngine.Color.green);
             maxLines++;
         }
+    }
+
+    public static void RefundTunnels(int refund)
+    {
+        tunnels += refund;
     }
 
     private bool DoesSegmentCrossRiver(Vector3 start, Vector3 end)
