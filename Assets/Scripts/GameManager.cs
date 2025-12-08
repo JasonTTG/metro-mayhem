@@ -34,7 +34,7 @@ public class GameManager : MonoBehaviour
     private List<GameObject> transitStations = new List<GameObject>();
     private float spawnRadius = 1.88f;
     private int maxAttempts = 100;
-    private double cash = 300;
+    private double cash = 600;
     private int riverCurvePoints = 7;
     private LineRenderer riverLR;
     private static Vector3[] riverPoints;
@@ -153,8 +153,7 @@ public class GameManager : MonoBehaviour
                         if (maxLines < 5 && cash > 149)
                         {
                             BuyColor();
-                            cash -= 150;
-                            MoneyAnimation(cashText, -150);
+                            AddMoney(-150);
                             bottomBar.UpdateBar(trains, upgrades, tunnels, colors, maxLines);
                         }
                         return;
@@ -162,8 +161,7 @@ public class GameManager : MonoBehaviour
                         if (cash > 109)
                         {
                             trains++;
-                            cash -= 110;
-                            MoneyAnimation(cashText, -110);
+                            AddMoney(-110);
                             bottomBar.UpdateBar(trains, upgrades, tunnels, colors, maxLines);
                         }
                         return;
@@ -171,8 +169,7 @@ public class GameManager : MonoBehaviour
                         if (cash > 89)
                         {
                             upgrades++;
-                            cash -= 90;
-                            MoneyAnimation(cashText, -90);
+                            AddMoney(-90);
                             bottomBar.UpdateBar(trains, upgrades, tunnels, colors, maxLines);
                         }
                         return;
@@ -180,8 +177,7 @@ public class GameManager : MonoBehaviour
                         if (cash > 69)
                         {
                             tunnels++;
-                            cash -= 70;
-                            MoneyAnimation(cashText, -70);
+                            AddMoney(-70);
                             bottomBar.UpdateBar(trains, upgrades, tunnels, colors, maxLines);
                         }
                         return;
@@ -815,11 +811,16 @@ public class GameManager : MonoBehaviour
     public void NewCommuter()
     {
         totalCommuters++;
-        cash += 1.75;
         stationText.SetText("Total Commuters: " + totalCommuters);
+        AddMoney(1.75);
+    }
+
+    private void AddMoney(double val)
+    {
+        cash += val;
         cashText.SetText("$" + cash);
         TextMeshProUGUI floatingText = Instantiate(getmoneyObject, cashText.transform.parent);
-        StartCoroutine(MoneyAnimation(floatingText, 7.25));
+        StartCoroutine(MoneyAnimation(floatingText, val));
     }
 
     private IEnumerator MoneyAnimation(TextMeshProUGUI tmp, double val)
@@ -833,11 +834,13 @@ public class GameManager : MonoBehaviour
             startPos = rect.anchoredPosition;
             endPos = startPos + Vector3.up * 35f;
             tmp.color = UnityEngine.Color.green;
+            tmp.text = "+$" + val;
         } else
         {
             startPos = rect.anchoredPosition + Vector2.up * 35f;
             endPos = startPos + Vector3.down * 35f;
             tmp.color = UnityEngine.Color.red;
+            tmp.text = "-$" + val;
         }
         UnityEngine.Color startColor = tmp.color;
         float duration = 1f;
