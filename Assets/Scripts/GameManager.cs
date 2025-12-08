@@ -186,8 +186,7 @@ public class GameManager : MonoBehaviour
                 stationTypes.Add(startHit.collider.GetComponent<Station>().GetStationType());
                 previewLine = Instantiate(lineObject);
                 previewTransit = previewLine.GetComponent<TransitLine>();
-                int colorIndex = Mathf.Min(lines.Count, colors.Count - 1);
-                previewTransit.SetColor(colors[colorIndex]);
+                previewTransit.SetColor(colors[0]);
                 previewTransit.EnablePreview(stations, mousePos);
                 return;
             }
@@ -274,7 +273,8 @@ public class GameManager : MonoBehaviour
                 lines.Add(newLine);
 
                 TransitLine line = newLine.GetComponent<TransitLine>();
-                line.SetColor(colors[nextIndex]);
+                line.SetColor(colors[0]);
+                colors.RemoveAt(0);
                 line.LineSetup(new List<Transform>(stations), new HashSet<StationType>(stationTypes));
                 tunnels -= tunnelsUsedInCurrentLine;
             }
@@ -463,6 +463,7 @@ public class GameManager : MonoBehaviour
 
                     if (transitLine.GetStations().Count < 2)
                     {
+                        colors.Insert(0, lineObj.GetComponent<TransitLine>().GetColor());
                         lines.Remove(lineObj);
                         Destroy(lineObj);
                     }
@@ -731,10 +732,12 @@ public class GameManager : MonoBehaviour
         if (!addedColor)
         {
             colors.Add(UnityEngine.Color.magenta);
+            maxLines++;
             addedColor = true;
         } else
         {
             colors.Add(UnityEngine.Color.green);
+            maxLines++;
         }
     }
 
