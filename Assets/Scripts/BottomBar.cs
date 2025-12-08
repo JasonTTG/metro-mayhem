@@ -41,20 +41,19 @@ public class BottomBar : MonoBehaviour
             }
         }
 
-        if (maxLines == 3)
+        if (maxLines > 4)
         {
-            LineMagenta.GetComponent<SpriteRenderer>().color = Color.black;
+            GreenLock.SetActive(false);
+        }
+        else if (maxLines > 3)
+        {
+            MagentaLock.SetActive(false);
             LineGreen.GetComponent<SpriteRenderer>().color = Color.black;
-        } else
+        }
+        else
         {
-            if (maxLines > 3)
-            {
-                MagentaLock.SetActive(false);
-            }
-            if (maxLines > 4)
-            {
-                GreenLock.SetActive(false);
-            }
+            LineGreen.GetComponent<SpriteRenderer>().color = Color.black;
+            LineMagenta.GetComponent<SpriteRenderer>().color = Color.black;
         }
 
         TrainText.text = ":" + trains;

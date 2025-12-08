@@ -26,13 +26,15 @@ public class GameManager : MonoBehaviour
     [SerializeField] private GameObject shop;
     [SerializeField] private GameObject bar;
     [SerializeField] private GameObject restartButton;
+    [SerializeField] private GameObject trainShopItem;
+    [SerializeField] private GameObject upgradeShopItem;
     public static GameManager instance;
 
     private int totalCommuters = 0;
     private List<GameObject> transitStations = new List<GameObject>();
     private float spawnRadius = 1.88f;
     private int maxAttempts = 100;
-    private double cash = 0;
+    private double cash = 300;
     private int riverCurvePoints = 7;
     private LineRenderer riverLR;
     private static Vector3[] riverPoints;
@@ -59,6 +61,11 @@ public class GameManager : MonoBehaviour
     private TransitLine editingTransitLine;
     private int editingSegmentIndex = -1;
     private List<Transform> editingEndStations = new List<Transform>();
+
+    private GameObject draggedObject = null;
+    private bool isDragging = false;
+    private enum DragType { None, Train, Upgrade }
+    private DragType currentDragType = DragType.None;
 
     private void Awake()
     {
@@ -114,8 +121,10 @@ public class GameManager : MonoBehaviour
         Vector3 mouseV3 = Camera.main.ScreenToWorldPoint(Input.mousePosition);
         mouseV3.z = 0f;
 
-        if (mouseV3.y < 0.2 && mouseV3.x < 5.75 && shopOpen)
+        if (isDragging)
         {
+            HandleDragging(mouseV3);
+            return;
         }
 
         if (Input.GetMouseButtonDown(0))
@@ -141,7 +150,7 @@ public class GameManager : MonoBehaviour
                         StartCoroutine(OpenCloseShop());
                         return;
                     case "LineButton":
-                        if (maxLines < 4 && cash > 149)
+                        if (maxLines < 5 && cash > 149)
                         {
                             BuyColor();
                             cash -= 150;
@@ -174,6 +183,18 @@ public class GameManager : MonoBehaviour
                             cash -= 70;
                             MoneyAnimation(cashText, -70);
                             bottomBar.UpdateBar(trains, upgrades, tunnels, colors, maxLines);
+                        }
+                        return;
+                    case "Train":
+                        if (trains > 0)
+                        {
+                            StartDragging(mouseV3, DragType.Train);
+                        }
+                        return;
+                    case "Upgrade":
+                        if (upgrades > 0)
+                        {
+                            StartDragging(mouseV3, DragType.Upgrade);
                         }
                         return;
                     case "Restart":
@@ -325,7 +346,86 @@ public class GameManager : MonoBehaviour
             tunnelsUsedInCurrentLine = 0;
         }
     }
+    private void StartDragging(Vector3 startPos, DragType dragType)
+    {
+        isDragging = true;
+        currentDragType = dragType;
 
+        if (dragType == DragType.Train)
+        {
+            draggedObject = Instantiate(trainShopItem, startPos, Quaternion.identity);
+        }
+        else if (dragType == DragType.Upgrade)
+        {
+            draggedObject = Instantiate(upgradeShopItem, startPos, Quaternion.identity);
+        }
+
+        SpriteRenderer sr = draggedObject.GetComponent<SpriteRenderer>();
+        if (sr != null)
+        {
+            UnityEngine.Color color = sr.color;
+            color.a = 0.7f;
+            sr.color = color;
+        }
+    }
+
+    private void HandleDragging(Vector3 mousePos)
+    {
+        if (draggedObject != null)
+        {
+            draggedObject.transform.position = mousePos;
+        }
+
+        if (Input.GetMouseButtonUp(0))
+        {
+            FinishDragging(mousePos);
+        }
+    }
+
+    private void FinishDragging(Vector3 releasePos)
+    {
+        RaycastHit2D hit = Physics2D.Raycast(releasePos, Vector2.zero);
+
+        if (currentDragType == DragType.Train)
+        {
+            foreach (GameObject lineObj in lines)
+            {
+                TransitLine transitLine = lineObj.GetComponent<TransitLine>();
+                float distance;
+                int segmentIndex = transitLine.GetSegmentIndexAtPosition(releasePos, out distance);
+
+                if (segmentIndex >= 0 && distance < 0.5f)
+                {
+                    transitLine.AddTrain();
+                    trains--;
+                    bottomBar.UpdateBar(trains, upgrades, tunnels, colors, maxLines);
+                    break;
+                }
+            }
+        }
+        else if (currentDragType == DragType.Upgrade)
+        {
+            if (hit.collider != null && hit.collider.CompareTag("Station"))
+            {
+                Station station = hit.collider.GetComponent<Station>();
+                if (station != null && station.GetCapacity() == 6)
+                {
+                    station.IncreaseCapacity();
+                    upgrades--;
+                    bottomBar.UpdateBar(trains, upgrades, tunnels, colors, maxLines);
+                }
+            }
+        }
+
+        if (draggedObject != null)
+        {
+            Destroy(draggedObject);
+            draggedObject = null;
+        }
+
+        isDragging = false;
+        currentDragType = DragType.None;
+    }
     private bool TryStartLineEditing(Vector3 mousePos)
     {
         float minDistance = 0.3f;

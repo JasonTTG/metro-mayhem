@@ -28,6 +28,7 @@ public class Station : MonoBehaviour
     public void IncreaseCapacity()
     {
         capacity = 8;
+        transform.localScale = new Vector2 (1.27f, 1.27f);
     }
 
     public void AddCommuter(GameObject commuter)
