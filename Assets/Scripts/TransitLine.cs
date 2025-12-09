@@ -101,6 +101,7 @@ public class TransitLine : MonoBehaviour
 
         newTrain.UpdateTrainLine(stations, color, stationTypes, startOffset);
         trains.Add(newTrain);
+        GameManager.AddTrain(newTrain);
     }
 
     public void RemoveTrain(Train train)
@@ -108,6 +109,7 @@ public class TransitLine : MonoBehaviour
         if (trains.Contains(train))
         {
             trains.Remove(train);
+            GameManager.RemoveTrain(train);
             Destroy(train.gameObject);
         }
     }

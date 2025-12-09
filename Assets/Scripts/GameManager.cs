@@ -46,6 +46,7 @@ public class GameManager : MonoBehaviour
     private GameObject previewLine;
     private TransitLine previewTransit;
     private List<UnityEngine.Color> colors = new List<UnityEngine.Color> { UnityEngine.Color.red, UnityEngine.Color.blue, UnityEngine.Color.yellow };
+    private static List<Train> trainList = new List<Train>();
     private bool addedColor = false;
     private List<GameObject> lines = new List<GameObject>();
     private bool isDrawing = false;
@@ -203,18 +204,21 @@ public class GameManager : MonoBehaviour
         if (Input.GetMouseButtonDown(1))
         {
             HandleLineSegmentDeletion(mouseV3);
+            UpdateTrains();
             return;
         }
 
         if (isEditingLine && Input.GetMouseButton(0))
         {
             HandleLineEditing(mouseV3);
+            UpdateTrains();
             return;
         }
 
         if (isEditingLine && Input.GetMouseButtonUp(0))
         {
             FinishLineEditing();
+            UpdateTrains();
             return;
         }
 
@@ -916,6 +920,26 @@ public class GameManager : MonoBehaviour
             }
         }
         return false;
+    }
+
+    public static void AddTrain(Train train)
+    {
+        trainList.Add(train);
+        UpdateTrains();
+    }
+
+    public static void RemoveTrain(Train train)
+    {
+        trainList.Remove(train);
+        UpdateTrains();
+    }
+
+    public static void UpdateTrains()
+    {
+        foreach (Train train in trainList)
+        {
+            train.GetComponent<Train>().UpdateTrain();
+        }
     }
 
     /*

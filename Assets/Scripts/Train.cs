@@ -56,14 +56,6 @@ public class Train : MonoBehaviour
 
     private IEnumerator StopAtStation()
     {
-        stationConnectionTypes.Clear();
-        foreach (Transform t in stations)
-        {
-            foreach (StationType type in t.GetComponent<Station>().GetConnections())
-            {
-                stationConnectionTypes.Add(type);
-            }
-        }
         stopped = true;
         ps.Stop();
 
@@ -353,5 +345,17 @@ public class Train : MonoBehaviour
     {
         isOnNewRoute = true;
         oldStations = null;
+    }
+
+    public void UpdateTrain()
+    {
+        stationConnectionTypes.Clear();
+        foreach (Transform t in stations)
+        {
+            foreach (StationType type in t.GetComponent<Station>().GetConnections())
+            {
+                stationConnectionTypes.Add(type);
+            }
+        }
     }
 }
