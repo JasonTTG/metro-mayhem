@@ -6,6 +6,8 @@ public class Station : MonoBehaviour
 {
     private StationType station;
     public List<GameObject> commuters;
+    private Dictionary<int, List<Transform>> connectedStations = new Dictionary<int, List<Transform>>();
+    private HashSet<StationType> connectedStationTypes = new HashSet<StationType>();
     private int capacity = 6;
 
     // Start is called once before the first execution of Update after the MonoBehaviour is created
@@ -77,6 +79,39 @@ public class Station : MonoBehaviour
                 station = StationType.Triangle;
                 transform.Find("Triangle_0").GetComponent<SpriteRenderer>().enabled = true;
                 break;
+        }
+    }
+
+    public HashSet<StationType> GetConnections()
+    {
+        return connectedStationTypes;
+    }
+
+    public bool HasConnection(StationType connection)
+    {
+        return connectedStationTypes.Contains(connection);
+    }
+
+    public void SetConnections(int instance, List<Transform> stations)
+    {
+        if (!connectedStations.ContainsKey(instance))
+        {
+            connectedStations.Add(instance, stations);
+        }
+        else if (stations != connectedStations[instance])
+        {
+            connectedStations[instance] = stations;
+        }
+        connectedStationTypes.Clear();
+        foreach (var i in connectedStations.Keys)
+        {
+            foreach (Transform t in connectedStations[i])
+            {
+                if (t != this.transform)
+                {
+                    connectedStationTypes.Add(t.GetComponent<Station>().GetStationType());
+                }
+            }
         }
     }
 }

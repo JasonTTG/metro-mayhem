@@ -86,6 +86,7 @@ public class TransitLine : MonoBehaviour
         for (int i = 0; i < stations.Count; i++)
         {
             lr.SetPosition(i, stations[i].position);
+            stations[i].GetComponent<Station>().SetConnections(GetInstanceID(), new List<Transform>(stations));
         }
 
         AddTrain();

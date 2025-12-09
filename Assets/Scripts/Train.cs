@@ -1,5 +1,6 @@
 using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 using static System.Collections.Specialized.BitVector32;
 
@@ -9,6 +10,7 @@ public class Train : MonoBehaviour
 
     private List<Transform> stations;
     private HashSet<StationType> stationTypes;
+    private HashSet<StationType> stationConnectionTypes = new HashSet<StationType>();
     private SpriteRenderer sr;
     private float speed = 3f;
     private float stopDuration = 2f;
@@ -54,6 +56,14 @@ public class Train : MonoBehaviour
 
     private IEnumerator StopAtStation()
     {
+        stationConnectionTypes.Clear();
+        foreach (Transform t in stations)
+        {
+            foreach (StationType type in t.GetComponent<Station>().GetConnections())
+            {
+                stationConnectionTypes.Add(type);
+            }
+        }
         stopped = true;
         ps.Stop();
 
@@ -67,6 +77,13 @@ public class Train : MonoBehaviour
                 {
                     commuters.RemoveAt(i);
                     GameManager.instance.NewCommuter();
+                }
+                else if (station.HasConnection(commuters[i]) && !stationTypes.Contains(commuters[i]) && station.CommuterSize() < station.GetCapacity())
+                {
+                    GameObject newCommuter = Instantiate(commuterObject);
+                    newCommuter.GetComponent<Commuter>().SetCommuter(commuters[i]);
+                    station.AddCommuter(newCommuter);
+                    commuters.RemoveAt(i);
                 }
             }
             UpdateSeats();
@@ -87,7 +104,7 @@ public class Train : MonoBehaviour
 
         while (stationPeople.Count > 0 && added < slots && stationPeople.Count > idx)
         {
-            if (stationTypes.Contains(stationPeople[idx]))
+            if (stationTypes.Contains(stationPeople[idx]) || (stationConnectionTypes.Contains(stationPeople[idx]) && !station.HasConnection(stationPeople[idx])))
             {
                 commuters.Add(stationPeople[idx]);
                 stationPeople.RemoveAt(idx);
@@ -277,7 +294,7 @@ public class Train : MonoBehaviour
             }
             else
             {
-                usingOldRoute = true;
+                newTargetIndex = line.Count - 1;
             }
         }
         else
@@ -289,6 +306,11 @@ public class Train : MonoBehaviour
         stations = line;
         sr.color = color;
         stationTypes = st;
+        stationConnectionTypes.Clear();
+        foreach (Transform t in stations)
+        {
+            stationConnectionTypes.Add(t.GetComponent<Station>().GetStationType());
+        }
         isLoop = stations.Count > 1 && stations[0] == stations[stations.Count - 1];
 
         if (oldStations == null)

@@ -1,2 +1,13 @@
 fileFormatVersion: 2
 guid: 3fe5313bcf85a824f995fd92759ae26b
+MonoImporter:
+  externalObjects: {}
+  serializedVersion: 2
+  defaultReferences:
+  - lr: {instanceID: 0}
+  - trainObject: {fileID: 7603589361720858906, guid: 3a84f98cb804e8c4796ca1def3ef83f3, type: 3}
+  executionOrder: 0
+  icon: {instanceID: 0}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
