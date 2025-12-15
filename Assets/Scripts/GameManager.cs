@@ -34,7 +34,7 @@ public class GameManager : MonoBehaviour
     private List<GameObject> transitStations = new List<GameObject>();
     private float spawnRadius = 1.88f;
     private int maxAttempts = 100;
-    private double cash = 600;
+    private double cash = 0;
     private int riverCurvePoints = 7;
     private LineRenderer riverLR;
     private static Vector3[] riverPoints;
