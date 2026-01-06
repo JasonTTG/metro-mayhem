@@ -116,11 +116,11 @@ public class TransitLine : MonoBehaviour
 
     public void RemoveAllTrains()
     {
-        foreach (Train train in trains)
+        for (int i = 0; i < trains.Count; i++)
         {
-            if (train != null)
+            if (trains[i] != null)
             {
-                Destroy(train.gameObject);
+                RemoveTrain(trains[i]);
             }
         }
         trains.Clear();

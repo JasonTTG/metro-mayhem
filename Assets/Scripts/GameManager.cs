@@ -34,7 +34,7 @@ public class GameManager : MonoBehaviour
     private List<GameObject> transitStations = new List<GameObject>();
     private float spawnRadius = 1.88f;
     private int maxAttempts = 100;
-    private double cash = 0;
+    private double cash = 600;
     private int riverCurvePoints = 7;
     private LineRenderer riverLR;
     private static Vector3[] riverPoints;
@@ -283,10 +283,8 @@ public class GameManager : MonoBehaviour
                 Transform hitStation = mouseHit.collider.transform;
 
                 if (stations.Count < 2 ||
-                    (stations[stations.Count - 1] != hitStation && stations[stations.Count - 2] != hitStation))
+                    ((!stations.Contains(hitStation) || stations[0] == hitStation)) && stations[stations.Count-1] != hitStation)
                 {
-                    if (stations[stations.Count-1] != hitStation)
-                    {
                         if (stations.Count > 0)
                         {
                             Vector3 lastPos = stations[stations.Count - 1].position;
@@ -304,7 +302,6 @@ public class GameManager : MonoBehaviour
                         stations.Add(hitStation);
                         stationTypes.Add(mouseHit.collider.GetComponent<Station>().GetStationType());
                     }
-                }
             }
         }
 
